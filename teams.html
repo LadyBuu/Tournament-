@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Manager - Teams</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>Tournament <span>Manager</span></h1>
+        <nav>
+            <a href="index.html">Dashboard</a>
+            <a href="characters.html">Characters</a>
+            <a href="teams.html" class="active">Teams</a>
+            <a href="tournaments.html">Tournaments</a>
+        </nav>
+    </header>
+
+    <main class="teams-page">
+        <div class="page-header">
+            <h2>Team Management</h2>
+            <button id="add-team-btn" class="primary">+ Add Team</button>
+        </div>
+
+        <!-- Team Form -->
+        <div id="team-form" class="form-container hidden">
+            <h3 id="team-form-title">Add Team</h3>
+            <form id="team-form-inner">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Team Name *</label>
+                        <input type="text" id="team-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Team Type *</label>
+                        <select id="team-type" required>
+                            <option value="">Select type...</option>
+                            <option value="academic">Academic (weeks)</option>
+                            <option value="professional">Professional (years)</option>
+                            <option value="internship">Internship (one-time)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Founded Year</label>
+                        <input type="number" id="team-founded" min="1900" max="2026">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="team-status">
+                            <option value="active">Active</option>
+                            <option value="deprecated">Deprecated (history kept)</option>
+                            <option value="deleted">Deleted (permanent)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancel-team-btn" class="secondary">Cancel</button>
+                    <button type="submit" id="save-team-btn" class="primary">Save Team</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Team List -->
+        <div id="team-list">
+            <div class="list-header">
+                <span>Team Name</span>
+                <span>Type</span>
+                <span>Members</span>
+                <span>Status</span>
+                <span>Actions</span>
+            </div>
+            <div id="teams-container">
+                <p class="empty-state">No teams created yet. Add your first team!</p>
+            </div>
+        </div>
+
+        <!-- Member Management Modal -->
+        <div id="member-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modal-team-name">Team Members</h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="member-form">
+                        <select id="member-character">
+                            <option value="">Select character...</option>
+                        </select>
+                        <input type="text" id="member-role" placeholder="Role (e.g., Captain)">
+                        <input type="number" id="member-join-year" placeholder="Join Year">
+                        <input type="number" id="member-leave-year" placeholder="Leave Year (optional)">
+                        <button id="add-member-btn" class="primary small">Add Member</button>
+                    </div>
+                    <div id="members-list">
+                        <p class="empty-state">No members in this team</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
