@@ -17,6 +17,15 @@
             <a href="teams.html">Teams</a>
             <a href="tournaments.html">Tournaments</a>
         </nav>
+        <div class="header-actions">
+            <button id="export-json-btn" class="small">Export JSON</button>
+            <button id="import-json-btn" class="small">Import JSON</button>
+            <button id="export-csv-btn" class="small">Export CSV</button>
+            <button id="import-csv-btn" class="small">Import CSV</button>
+            <button id="template-csv-btn" class="small">Template CSV</button>
+            <input type="file" id="json-file-input" accept=".json" style="display:none">
+            <input type="file" id="csv-file-input" accept=".csv" style="display:none">
+        </div>
     </header>
 
     <main class="characters-page">
@@ -35,6 +44,10 @@
                         <input type="text" id="char-firstname" required>
                     </div>
                     <div class="form-group">
+                        <label>Middle Name</label>
+                        <input type="text" id="char-middlename">
+                    </div>
+                    <div class="form-group">
                         <label>Last Name</label>
                         <input type="text" id="char-lastname">
                     </div>
@@ -43,23 +56,36 @@
                         <input type="number" id="char-birthyear" min="1900" max="2026">
                     </div>
                     <div class="form-group">
-                        <label>Appearance</label>
-                        <select id="char-appearance">
-                            <option value="">Select...</option>
-                            <option value="Human">Human</option>
-                            <option value="Elf">Elf</option>
-                            <option value="Dwarf">Dwarf</option>
-                            <option value="Orc">Orc</option>
-                            <option value="Goblin">Goblin</option>
-                            <option value="Halfling">Halfling</option>
-                            <option value="Dragonborn">Dragonborn</option>
-                            <option value="Tiefling">Tiefling</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
                         <label>Gender</label>
                         <input type="text" id="char-gender" placeholder="Male/Female/Other">
+                    </div>
+                    <div class="form-group">
+                        <label>Associated Names (nicknames, aliases)</label>
+                        <input type="text" id="char-associated-names" placeholder="e.g., The Shadow, Nightwalker">
+                    </div>
+                    <div class="form-group">
+                        <label>Eye Color</label>
+                        <input type="text" id="char-eyes" placeholder="Blue, Green, Brown...">
+                    </div>
+                    <div class="form-group">
+                        <label>Hair Color</label>
+                        <input type="text" id="char-hair" placeholder="Blonde, Black, Red...">
+                    </div>
+                    <div class="form-group">
+                        <label>Skin Color/Tone</label>
+                        <input type="text" id="char-skin" placeholder="Fair, Olive, Dark...">
+                    </div>
+                    <div class="form-group">
+                        <label>Height</label>
+                        <input type="text" id="char-height" placeholder="e.g., 5'10\", 178cm">
+                    </div>
+                    <div class="form-group">
+                        <label>Build</label>
+                        <input type="text" id="char-build" placeholder="Slim, Athletic, Stocky...">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Appearance Notes</label>
+                        <textarea id="char-appearance-notes" rows="2" placeholder="Scars, tattoos, distinguishing features..."></textarea>
                     </div>
                     <div class="form-group full-width">
                         <label>Background / Notes</label>
