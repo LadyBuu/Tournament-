@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Manager - Characters</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>Tournament <span>Manager</span></h1>
+        <nav>
+            <a href="index.html">Dashboard</a>
+            <a href="characters.html" class="active">Characters</a>
+            <a href="teams.html">Teams</a>
+            <a href="tournaments.html">Tournaments</a>
+        </nav>
+    </header>
+
+    <main class="characters-page">
+        <div class="page-header">
+            <h2>Character Management</h2>
+            <button id="add-character-btn" class="primary">+ Add Character</button>
+        </div>
+
+        <!-- Character Form -->
+        <div id="character-form" class="form-container hidden">
+            <h3 id="form-title">Add Character</h3>
+            <form id="char-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>First Name *</label>
+                        <input type="text" id="char-firstname" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name</label>
+                        <input type="text" id="char-lastname">
+                    </div>
+                    <div class="form-group">
+                        <label>Year of Birth</label>
+                        <input type="number" id="char-birthyear" min="1900" max="2026">
+                    </div>
+                    <div class="form-group">
+                        <label>Appearance</label>
+                        <select id="char-appearance">
+                            <option value="">Select...</option>
+                            <option value="Human">Human</option>
+                            <option value="Elf">Elf</option>
+                            <option value="Dwarf">Dwarf</option>
+                            <option value="Orc">Orc</option>
+                            <option value="Goblin">Goblin</option>
+                            <option value="Halfling">Halfling</option>
+                            <option value="Dragonborn">Dragonborn</option>
+                            <option value="Tiefling">Tiefling</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Gender</label>
+                        <input type="text" id="char-gender" placeholder="Male/Female/Other">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Background / Notes</label>
+                        <textarea id="char-notes" rows="3" placeholder="Character background, motivations, etc."></textarea>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancel-char-btn" class="secondary">Cancel</button>
+                    <button type="submit" id="save-char-btn" class="primary">Save Character</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Character List -->
+        <div id="character-list">
+            <div class="list-header">
+                <span>Name</span>
+                <span>Birth Year</span>
+                <span>Appearance</span>
+                <span>Teams</span>
+                <span>Actions</span>
+            </div>
+            <div id="characters-container">
+                <p class="empty-state">No characters created yet. Add your first character!</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
