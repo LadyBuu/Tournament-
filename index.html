@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Manager - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>Tournament <span>Manager</span></h1>
+        <nav>
+            <a href="index.html" class="active">Dashboard</a>
+            <a href="characters.html">Characters</a>
+            <a href="teams.html">Teams</a>
+            <a href="tournaments.html">Tournaments</a>
+        </nav>
+    </header>
+
+    <main class="dashboard">
+        <section class="stats-grid">
+            <div class="stat-card">
+                <h3>Characters</h3>
+                <p class="stat-number" id="char-count">0</p>
+                <a href="characters.html" class="stat-link">Manage →</a>
+            </div>
+            <div class="stat-card">
+                <h3>Teams</h3>
+                <p class="stat-number" id="team-count">0</p>
+                <a href="teams.html" class="stat-link">Manage →</a>
+            </div>
+            <div class="stat-card">
+                <h3>Active Tournaments</h3>
+                <p class="stat-number" id="tournament-count">0</p>
+                <a href="tournaments.html" class="stat-link">Manage →</a>
+            </div>
+        </section>
+
+        <section class="recent-activity">
+            <h2>Recent Activity</h2>
+            <div id="activity-log">
+                <p class="empty-state">No recent activity</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
