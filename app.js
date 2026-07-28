@@ -10,17 +10,27 @@ var data = {
     activities: []
 };
 
+// ---- Data Limits ----
+var MAX_ACTIVITIES = 50; // Limit activities to prevent storage bloat
+var MAX_CHARACTERS = 1000;
+var MAX_TEAMS = 500;
+var MAX_TOURNAMENTS = 100;
+
 // Load from localStorage
 function loadData() {
     try {
         var stored = localStorage.getItem('tournament-manager-data');
         if (stored) {
             var parsed = JSON.parse(stored);
-            // Ensure all required fields exist
             data.characters = parsed.characters || [];
             data.teams = parsed.teams || [];
             data.tournaments = parsed.tournaments || [];
             data.activities = parsed.activities || [];
+            
+            // Trim excess data
+            if (data.activities.length > MAX_ACTIVITIES) {
+                data.activities = data.activities.slice(0, MAX_ACTIVITIES);
+            }
             return true;
         }
     } catch (e) {
@@ -29,12 +39,53 @@ function loadData() {
     return false;
 }
 
-// Save to localStorage
+// Save to localStorage with error handling
 function saveData() {
     try {
-        localStorage.setItem('tournament-manager-data', JSON.stringify(data));
+        // Trim data before saving to prevent quota issues
+        if (data.activities.length > MAX_ACTIVITIES) {
+            data.activities = data.activities.slice(0, MAX_ACTIVITIES);
+        }
+        
+        // Check data size before saving
+        var jsonData = JSON.stringify(data);
+        var sizeInBytes = new Blob([jsonData]).size;
+        var sizeInMB = sizeInBytes / (1024 * 1024);
+        
+        // If data is too large, warn and trim more aggressively
+        if (sizeInMB > 4) {
+            console.warn('Data size is ' + sizeInMB.toFixed(2) + 'MB, trimming...');
+            // Keep only last 20 activities
+            data.activities = data.activities.slice(0, 20);
+            // Re-stringify to check new size
+            jsonData = JSON.stringify(data);
+            sizeInBytes = new Blob([jsonData]).size;
+            sizeInMB = sizeInBytes / (1024 * 1024);
+            
+            if (sizeInMB > 4.5) {
+                // If still too large, clear activities entirely
+                data.activities = [];
+                jsonData = JSON.stringify(data);
+                console.warn('Cleared activities to reduce data size');
+            }
+        }
+        
+        localStorage.setItem('tournament-manager-data', jsonData);
     } catch (e) {
-        console.warn('Failed to save data:', e);
+        if (e.name === 'QuotaExceededError' || e.code === 22) {
+            console.error('Storage quota exceeded. Attempting to clean up...');
+            // Emergency cleanup - remove activities and old data
+            data.activities = [];
+            try {
+                localStorage.setItem('tournament-manager-data', JSON.stringify(data));
+                console.log('Data saved after cleanup');
+            } catch (e2) {
+                console.error('Still cannot save data. Please export and clear data manually.');
+                alert('Storage is full. Please export your data and clear localStorage to continue.');
+            }
+        } else {
+            console.warn('Failed to save data:', e);
+        }
     }
 }
 
@@ -52,7 +103,10 @@ function logActivity(message, type) {
         type: type,
         timestamp: new Date().toISOString()
     });
-    if (data.activities.length > 100) data.activities.pop();
+    // Keep only last 50 activities
+    if (data.activities.length > 50) {
+        data.activities = data.activities.slice(0, 50);
+    }
     saveData();
     updateActivityLog();
 }
@@ -121,6 +175,12 @@ function importJSON(file) {
             data.teams = imported.teams || [];
             data.tournaments = imported.tournaments || [];
             data.activities = imported.activities || [];
+            
+            // Trim activities
+            if (data.activities.length > 50) {
+                data.activities = data.activities.slice(0, 50);
+            }
+            
             saveData();
             logActivity('Imported data from JSON');
             renderAll();
@@ -427,7 +487,6 @@ function parseCSVLine(line) {
 
 // ---- Render All ----
 function renderAll() {
-    // First, ensure data is loaded
     loadData();
     
     var path = window.location.pathname;
@@ -449,7 +508,6 @@ function renderCharacters() {
     var container = document.getElementById('characters-container');
     if (!container) return;
 
-    // Reload data to ensure we have the latest
     loadData();
 
     if (data.characters.length === 0) {
@@ -622,7 +680,6 @@ function renderTeams() {
     var container = document.getElementById('teams-container');
     if (!container) return;
 
-    // Reload data to ensure we have the latest
     loadData();
 
     if (data.teams.length === 0) {
@@ -935,7 +992,6 @@ function renderTournaments() {
     var container = document.getElementById('tournaments-container');
     if (!container) return;
 
-    // Reload data to ensure we have the latest
     loadData();
 
     if (data.tournaments.length === 0) {
@@ -1257,9 +1313,18 @@ function initImportExport() {
     });
 }
 
+// ---- Clear Storage Helper (for debugging) ----
+function clearStorage() {
+    if (confirm('This will delete ALL data. Continue?')) {
+        localStorage.removeItem('tournament-manager-data');
+        data = { characters: [], teams: [], tournaments: [], activities: [] };
+        saveData();
+        location.reload();
+    }
+}
+
 // ---- Initialize ----
 document.addEventListener('DOMContentLoaded', function() {
-    // Load data first
     loadData();
     initImportExport();
 
@@ -1309,11 +1374,14 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('add-team-to-tournament').addEventListener('click', addTeamToTournament);
     }
 
-    // Auto-save every 30 seconds
-    setInterval(saveData, 30000);
+    // Save data periodically
+    setInterval(saveData, 60000);
 });
 
-// Also save on page unload
+// Save on page unload
 window.addEventListener('beforeunload', function() {
     saveData();
 });
+
+// Expose clearStorage for debugging
+window.clearStorage = clearStorage;
