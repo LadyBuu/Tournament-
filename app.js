@@ -1,1154 +1,3 @@
-Here are all the complete files for the Tournament Manager application:
-
-## index.html
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tournament Manager - Dashboard</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-</head>
-<body>
-    <header>
-        <h1>Tournament <span>Manager</span></h1>
-        <nav>
-            <a href="index.html" class="active">Dashboard</a>
-            <a href="characters.html">Characters</a>
-            <a href="teams.html">Teams</a>
-            <a href="tournaments.html">Tournaments</a>
-        </nav>
-        <div class="header-actions">
-            <button id="export-json-btn" class="small">Export JSON</button>
-            <button id="import-json-btn" class="small">Import JSON</button>
-            <button id="export-csv-btn" class="small">Export CSV</button>
-            <button id="import-csv-btn" class="small">Import CSV</button>
-            <button id="template-csv-btn" class="small">Template CSV</button>
-            <input type="file" id="json-file-input" accept=".json" style="display:none">
-            <input type="file" id="csv-file-input" accept=".csv" style="display:none">
-        </div>
-    </header>
-
-    <main class="dashboard">
-        <section class="stats-grid">
-            <div class="stat-card">
-                <h3>Characters</h3>
-                <p class="stat-number" id="char-count">0</p>
-                <a href="characters.html" class="stat-link">Manage →</a>
-            </div>
-            <div class="stat-card">
-                <h3>Teams</h3>
-                <p class="stat-number" id="team-count">0</p>
-                <a href="teams.html" class="stat-link">Manage →</a>
-            </div>
-            <div class="stat-card">
-                <h3>Active Tournaments</h3>
-                <p class="stat-number" id="tournament-count">0</p>
-                <a href="tournaments.html" class="stat-link">Manage →</a>
-            </div>
-        </section>
-
-        <section class="recent-activity">
-            <h2>Recent Activity</h2>
-            <div id="activity-log">
-                <p class="empty-state">No recent activity</p>
-            </div>
-        </section>
-    </main>
-
-    <script src="app.js"></script>
-</body>
-</html>
-```
-
-## characters.html
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tournament Manager - Characters</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-</head>
-<body>
-    <header>
-        <h1>Tournament <span>Manager</span></h1>
-        <nav>
-            <a href="index.html">Dashboard</a>
-            <a href="characters.html" class="active">Characters</a>
-            <a href="teams.html">Teams</a>
-            <a href="tournaments.html">Tournaments</a>
-        </nav>
-        <div class="header-actions">
-            <button id="export-json-btn" class="small">Export JSON</button>
-            <button id="import-json-btn" class="small">Import JSON</button>
-            <button id="export-csv-btn" class="small">Export CSV</button>
-            <button id="import-csv-btn" class="small">Import CSV</button>
-            <button id="template-csv-btn" class="small">Template CSV</button>
-            <input type="file" id="json-file-input" accept=".json" style="display:none">
-            <input type="file" id="csv-file-input" accept=".csv" style="display:none">
-        </div>
-    </header>
-
-    <main class="characters-page">
-        <div class="page-header">
-            <h2>Character Management</h2>
-            <button id="add-character-btn" class="primary">+ Add Character</button>
-        </div>
-
-        <!-- Character Form -->
-        <div id="character-form" class="form-container hidden">
-            <h3 id="form-title">Add Character</h3>
-            <form id="char-form">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>First Name *</label>
-                        <input type="text" id="char-firstname" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Middle Name</label>
-                        <input type="text" id="char-middlename">
-                    </div>
-                    <div class="form-group">
-                        <label>Last Name</label>
-                        <input type="text" id="char-lastname">
-                    </div>
-                    <div class="form-group">
-                        <label>Year of Birth</label>
-                        <input type="number" id="char-birthyear" min="1900" max="2026">
-                    </div>
-                    <div class="form-group">
-                        <label>Gender</label>
-                        <input type="text" id="char-gender" placeholder="Male/Female/Other">
-                    </div>
-                    <div class="form-group">
-                        <label>Associated Names (nicknames, aliases)</label>
-                        <input type="text" id="char-associated-names" placeholder="e.g., The Shadow, Nightwalker">
-                    </div>
-                    <div class="form-group">
-                        <label>Eye Color</label>
-                        <input type="text" id="char-eyes" placeholder="Blue, Green, Brown...">
-                    </div>
-                    <div class="form-group">
-                        <label>Hair Color</label>
-                        <input type="text" id="char-hair" placeholder="Blonde, Black, Red...">
-                    </div>
-                    <div class="form-group">
-                        <label>Skin Color/Tone</label>
-                        <input type="text" id="char-skin" placeholder="Fair, Olive, Dark...">
-                    </div>
-                    <div class="form-group">
-                        <label>Height</label>
-                        <input type="text" id="char-height" placeholder="e.g., 5'10\", 178cm">
-                    </div>
-                    <div class="form-group">
-                        <label>Build</label>
-                        <input type="text" id="char-build" placeholder="Slim, Athletic, Stocky...">
-                    </div>
-                    <div class="form-group full-width">
-                        <label>Appearance Notes</label>
-                        <textarea id="char-appearance-notes" rows="2" placeholder="Scars, tattoos, distinguishing features..."></textarea>
-                    </div>
-                    <div class="form-group full-width">
-                        <label>Background / Notes</label>
-                        <textarea id="char-notes" rows="3" placeholder="Character background, motivations, etc."></textarea>
-                    </div>
-                </div>
-                <div class="form-actions">
-                    <button type="button" id="cancel-char-btn" class="secondary">Cancel</button>
-                    <button type="submit" id="save-char-btn" class="primary">Save Character</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Character List -->
-        <div id="character-list">
-            <div class="list-header">
-                <span>Name</span>
-                <span>Birth Year</span>
-                <span>Appearance</span>
-                <span>Teams</span>
-                <span>Actions</span>
-            </div>
-            <div id="characters-container">
-                <p class="empty-state">No characters created yet. Add your first character!</p>
-            </div>
-        </div>
-    </main>
-
-    <script src="app.js"></script>
-</body>
-</html>
-```
-
-## teams.html
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tournament Manager - Teams</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-</head>
-<body>
-    <header>
-        <h1>Tournament <span>Manager</span></h1>
-        <nav>
-            <a href="index.html">Dashboard</a>
-            <a href="characters.html">Characters</a>
-            <a href="teams.html" class="active">Teams</a>
-            <a href="tournaments.html">Tournaments</a>
-        </nav>
-        <div class="header-actions">
-            <button id="export-json-btn" class="small">Export JSON</button>
-            <button id="import-json-btn" class="small">Import JSON</button>
-            <button id="export-csv-btn" class="small">Export CSV</button>
-            <button id="import-csv-btn" class="small">Import CSV</button>
-            <button id="template-csv-btn" class="small">Template CSV</button>
-            <input type="file" id="json-file-input" accept=".json" style="display:none">
-            <input type="file" id="csv-file-input" accept=".csv" style="display:none">
-        </div>
-    </header>
-
-    <main class="teams-page">
-        <div class="page-header">
-            <h2>Team Management</h2>
-            <button id="add-team-btn" class="primary">+ Add Team</button>
-        </div>
-
-        <!-- Team Form -->
-        <div id="team-form" class="form-container hidden">
-            <h3 id="team-form-title">Add Team</h3>
-            <form id="team-form-inner">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Team Name *</label>
-                        <input type="text" id="team-name" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Team Type *</label>
-                        <select id="team-type" required>
-                            <option value="">Select type...</option>
-                            <option value="academic">Academic (weeks)</option>
-                            <option value="professional">Professional (years)</option>
-                            <option value="internship">Internship (one-time)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Founded Year</label>
-                        <input type="number" id="team-founded" min="1900" max="2026">
-                    </div>
-                    <div class="form-group">
-                        <label>Status</label>
-                        <select id="team-status">
-                            <option value="active">Active</option>
-                            <option value="deprecated">Deprecated (history kept)</option>
-                            <option value="deleted">Deleted (permanent)</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-actions">
-                    <button type="button" id="cancel-team-btn" class="secondary">Cancel</button>
-                    <button type="submit" id="save-team-btn" class="primary">Save Team</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Team List -->
-        <div id="team-list">
-            <div class="list-header">
-                <span>Team Name</span>
-                <span>Type</span>
-                <span>Members</span>
-                <span>Status</span>
-                <span>Actions</span>
-            </div>
-            <div id="teams-container">
-                <p class="empty-state">No teams created yet. Add your first team!</p>
-            </div>
-        </div>
-
-        <!-- Member Management Modal -->
-        <div id="member-modal" class="modal hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="modal-team-name">Team Members</h3>
-                    <button class="close-modal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="member-form">
-                        <select id="member-character">
-                            <option value="">Select character...</option>
-                        </select>
-                        <input type="text" id="member-role" placeholder="Role (e.g., Captain)">
-                        <input type="number" id="member-join-year" placeholder="Join Year">
-                        <input type="number" id="member-leave-year" placeholder="Leave Year (optional)">
-                        <button id="add-member-btn" class="primary small">Add Member</button>
-                    </div>
-                    <div id="members-list">
-                        <p class="empty-state">No members in this team</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Edit Member Modal -->
-        <div id="edit-member-modal" class="modal hidden">
-            <div class="modal-content small">
-                <div class="modal-header">
-                    <h3>Edit Member</h3>
-                    <button class="close-modal" id="close-edit-member">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <form id="edit-member-form">
-                        <div class="form-group">
-                            <label>Character</label>
-                            <p id="edit-member-name" style="margin:4px 0 12px 0;font-weight:600;"></p>
-                        </div>
-                        <div class="form-group">
-                            <label>Role</label>
-                            <input type="text" id="edit-member-role">
-                        </div>
-                        <div class="form-group">
-                            <label>Join Year</label>
-                            <input type="number" id="edit-member-join-year">
-                        </div>
-                        <div class="form-group">
-                            <label>Leave Year</label>
-                            <input type="number" id="edit-member-leave-year">
-                        </div>
-                        <div class="form-actions">
-                            <button type="button" id="cancel-edit-member" class="secondary">Cancel</button>
-                            <button type="submit" id="save-edit-member" class="primary">Save Changes</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <script src="app.js"></script>
-</body>
-</html>
-```
-
-## tournaments.html
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tournament Manager - Tournaments</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-</head>
-<body>
-    <header>
-        <h1>Tournament <span>Manager</span></h1>
-        <nav>
-            <a href="index.html">Dashboard</a>
-            <a href="characters.html">Characters</a>
-            <a href="teams.html">Teams</a>
-            <a href="tournaments.html" class="active">Tournaments</a>
-        </nav>
-        <div class="header-actions">
-            <button id="export-json-btn" class="small">Export JSON</button>
-            <button id="import-json-btn" class="small">Import JSON</button>
-            <button id="export-csv-btn" class="small">Export CSV</button>
-            <button id="import-csv-btn" class="small">Import CSV</button>
-            <button id="template-csv-btn" class="small">Template CSV</button>
-            <input type="file" id="json-file-input" accept=".json" style="display:none">
-            <input type="file" id="csv-file-input" accept=".csv" style="display:none">
-        </div>
-    </header>
-
-    <main class="tournaments-page">
-        <div class="page-header">
-            <h2>Academic Tournaments</h2>
-            <button id="add-tournament-btn" class="primary">+ Create Tournament</button>
-        </div>
-
-        <!-- Tournament Form -->
-        <div id="tournament-form" class="form-container hidden">
-            <h3 id="tournament-form-title">Create Tournament</h3>
-            <form id="tournament-form-inner">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Tournament Name *</label>
-                        <input type="text" id="tournament-name" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Academic Year</label>
-                        <input type="text" id="tournament-year" placeholder="e.g., 2025-2026">
-                    </div>
-                    <div class="form-group">
-                        <label>Start Week</label>
-                        <input type="number" id="tournament-start-week" min="1" max="52">
-                    </div>
-                    <div class="form-group">
-                        <label>End Week</label>
-                        <input type="number" id="tournament-end-week" min="1" max="52">
-                    </div>
-                    <div class="form-group full-width">
-                        <label>Description</label>
-                        <textarea id="tournament-description" rows="3" placeholder="Tournament details..."></textarea>
-                    </div>
-                </div>
-                <div class="form-actions">
-                    <button type="button" id="cancel-tournament-btn" class="secondary">Cancel</button>
-                    <button type="submit" id="save-tournament-btn" class="primary">Save Tournament</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Tournament List -->
-        <div id="tournament-list">
-            <div class="list-header">
-                <span>Tournament</span>
-                <span>Academic Year</span>
-                <span>Weeks</span>
-                <span>Teams</span>
-                <span>Status</span>
-                <span>Actions</span>
-            </div>
-            <div id="tournaments-container">
-                <p class="empty-state">No tournaments created yet. Create your first tournament!</p>
-            </div>
-        </div>
-
-        <!-- Tournament Detail Modal -->
-        <div id="tournament-detail-modal" class="modal hidden">
-            <div class="modal-content wide">
-                <div class="modal-header">
-                    <h3 id="detail-tournament-name">Tournament Details</h3>
-                    <button class="close-modal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div id="tournament-info"></div>
-                    <div id="tournament-bracket">
-                        <h4>Tournament Bracket</h4>
-                        <div id="bracket-container"></div>
-                    </div>
-                    <div class="team-selection">
-                        <h4>Add Teams</h4>
-                        <select id="tournament-team-select">
-                            <option value="">Select academic team...</option>
-                        </select>
-                        <button id="add-team-to-tournament" class="primary small">Add Team</button>
-                    </div>
-                    <div id="tournament-teams-list"></div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <script src="app.js"></script>
-</body>
-</html>
-```
-
-## style.css
-
-```css
-/* ============================================================
-   style.css - Tournament Manager Theme
-   Dark grey-green with subtle glow effects
-   ============================================================ */
-
-:root {
-  --bg: #0d0f0d;
-  --panel: #141914;
-  --panel-alt: #1a201a;
-  --border: #2a3a2a;
-  --border-soft: #1f2a1f;
-  --text: #c8dcc8;
-  --text-dim: #6e8a6e;
-  --accent: #6a9a6a;
-  --accent-soft: rgba(106, 154, 106, 0.12);
-  --accent-glow: 0 0 14px rgba(106, 154, 106, 0.2);
-  --danger: #c1453c;
-  --danger-soft: rgba(193, 69, 60, 0.12);
-  --warning: #c9a24b;
-  --warning-soft: rgba(201, 162, 75, 0.12);
-  --radius: 10px;
-  --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-* {
-  box-sizing: border-box;
-  min-width: 0;
-}
-
-html,
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Inter', sans-serif;
-}
-
-h1,
-h2,
-h3,
-h4 {
-  font-family: 'Fraunces', serif;
-  font-weight: 700;
-  margin: 0;
-}
-
-/* ---- Scrollbars ---- */
-::-webkit-scrollbar {
-  height: 10px;
-  width: 10px;
-}
-::-webkit-scrollbar-track {
-  background: var(--bg);
-  border-radius: 5px;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 5px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--accent);
-}
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) var(--bg);
-}
-
-/* ---- Header ---- */
-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 15px;
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, var(--panel), var(--bg));
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-header h1 {
-  font-size: 1.4rem;
-  letter-spacing: .02em;
-  text-shadow: 0 0 20px rgba(106, 154, 106, 0.12);
-}
-
-header h1 span {
-  color: var(--accent);
-  text-shadow: 0 0 30px rgba(106, 154, 106, 0.25);
-}
-
-header nav {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-header nav a {
-  color: var(--text-dim);
-  text-decoration: none;
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: .85rem;
-  transition: .2s;
-}
-
-header nav a:hover {
-  color: var(--text);
-  background: var(--panel-alt);
-}
-
-header nav a.active {
-  color: var(--accent);
-  background: var(--accent-soft);
-  box-shadow: var(--accent-glow);
-}
-
-.header-actions {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.header-actions button.small {
-  font-size: .7rem;
-  padding: 4px 10px;
-}
-
-/* ---- Buttons ---- */
-button {
-  font-family: 'Inter', sans-serif;
-  font-size: .82rem;
-  font-weight: 500;
-  background: var(--panel-alt);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  padding: 8px 16px;
-  cursor: pointer;
-  transition: .2s;
-}
-
-button:hover {
-  border-color: var(--accent);
-  box-shadow: var(--accent-glow);
-}
-
-button.primary {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-button.primary:hover {
-  box-shadow: 0 0 20px rgba(106, 154, 106, 0.18);
-}
-
-button.danger {
-  color: var(--danger);
-}
-
-button.danger:hover {
-  border-color: var(--danger);
-  background: var(--danger-soft);
-  box-shadow: 0 0 20px rgba(193, 69, 60, 0.12);
-}
-
-button.secondary {
-  background: transparent;
-  border-color: transparent;
-  color: var(--text-dim);
-}
-
-button.secondary:hover {
-  border-color: var(--border);
-  background: var(--panel-alt);
-}
-
-button.small {
-  padding: 4px 10px;
-  font-size: .72rem;
-}
-
-/* ---- Main Content ---- */
-main {
-  padding: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.page-header h2 {
-  font-size: 1.6rem;
-  color: var(--accent);
-  text-shadow: 0 0 30px rgba(106, 154, 106, 0.1);
-}
-
-/* ---- Dashboard ---- */
-.dashboard .stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  margin-bottom: 40px;
-}
-
-.stat-card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: var(--shadow);
-}
-
-.stat-card h3 {
-  font-size: .85rem;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: .05em;
-}
-
-.stat-card .stat-number {
-  font-size: 2.5rem;
-  font-weight: 700;
-  font-family: 'Fraunces', serif;
-  color: var(--accent);
-  margin: 8px 0;
-}
-
-.stat-card .stat-link {
-  color: var(--accent);
-  text-decoration: none;
-  font-size: .85rem;
-}
-
-.stat-card .stat-link:hover {
-  text-decoration: underline;
-}
-
-.recent-activity {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: var(--shadow);
-}
-
-.recent-activity h2 {
-  font-size: 1.1rem;
-  margin-bottom: 16px;
-  color: var(--text-dim);
-}
-
-.activity-item {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border-soft);
-  font-size: .85rem;
-}
-
-.activity-item:last-child {
-  border-bottom: none;
-}
-
-/* ---- Forms ---- */
-.form-container {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 24px;
-  margin-bottom: 24px;
-  box-shadow: var(--shadow);
-}
-
-.form-container.hidden {
-  display: none;
-}
-
-.form-container h3 {
-  font-size: 1.2rem;
-  color: var(--accent);
-  margin-bottom: 16px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.form-group.full-width {
-  grid-column: 1 / -1;
-}
-
-.form-group label {
-  font-size: .78rem;
-  color: var(--text-dim);
-  font-weight: 500;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-  background: var(--panel-alt);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: .85rem;
-  font-family: 'Inter', sans-serif;
-  width: 100%;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 12px rgba(106, 154, 106, 0.08);
-}
-
-.form-group textarea {
-  resize: vertical;
-  min-height: 60px;
-}
-
-.form-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 16px;
-  justify-content: flex-end;
-}
-
-/* ---- Lists ---- */
-.list-header {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
-  gap: 12px;
-  padding: 10px 16px;
-  background: var(--panel-alt);
-  border-radius: var(--radius) var(--radius) 0 0;
-  border: 1px solid var(--border);
-  border-bottom: none;
-  font-weight: 600;
-  font-size: .78rem;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: .05em;
-}
-
-.list-item {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
-  gap: 12px;
-  padding: 10px 16px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-top: none;
-  align-items: center;
-}
-
-.list-item:last-child {
-  border-radius: 0 0 var(--radius) var(--radius);
-}
-
-.list-item .actions {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.empty-state {
-  padding: 40px;
-  text-align: center;
-  color: var(--text-dim);
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-/* ---- Modal ---- */
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, .7);
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.modal.hidden {
-  display: none;
-}
-
-.modal-content {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 24px;
-  max-width: 700px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 0 50px rgba(0, 0, 0, .5);
-}
-
-.modal-content.wide {
-  max-width: 900px;
-}
-
-.modal-content.small {
-  max-width: 450px;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-soft);
-}
-
-.modal-header h3 {
-  color: var(--accent);
-}
-
-.close-modal {
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0 8px;
-}
-
-.close-modal:hover {
-  color: var(--text);
-}
-
-/* ---- Member Management ---- */
-.member-form {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-  padding: 12px;
-  background: var(--panel-alt);
-  border-radius: var(--radius);
-  align-items: center;
-}
-
-.member-form select,
-.member-form input {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: .8rem;
-  font-family: 'Inter', sans-serif;
-  flex: 1;
-  min-width: 100px;
-}
-
-.member-form select:focus,
-.member-form input:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
-#members-list .member-entry {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background: var(--panel-alt);
-  border-radius: 6px;
-  margin-bottom: 4px;
-}
-
-#members-list .member-entry .member-info {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  align-items: center;
-  flex: 1;
-}
-
-#members-list .member-entry .member-info span {
-  font-size: .85rem;
-}
-
-#members-list .member-entry .member-info .role {
-  color: var(--accent);
-}
-
-#members-list .member-entry .member-info .years {
-  color: var(--text-dim);
-  font-size: .75rem;
-}
-
-#members-list .member-entry .member-actions {
-  display: flex;
-  gap: 4px;
-}
-
-/* ---- Tournament bracket ---- */
-#bracket-container {
-  display: flex;
-  gap: 40px;
-  overflow-x: auto;
-  padding: 20px 0;
-  min-height: 200px;
-}
-
-.bracket-round {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  min-width: 150px;
-}
-
-.bracket-round .round-label {
-  font-size: .75rem;
-  color: var(--text-dim);
-  text-align: center;
-  font-weight: 600;
-}
-
-.bracket-match {
-  background: var(--panel-alt);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 12px;
-  min-height: 60px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.bracket-match .team {
-  font-size: .8rem;
-  padding: 2px 0;
-}
-
-.bracket-match .team.winner {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-/* ---- Team Selection in Tournament ---- */
-.team-selection {
-  margin: 16px 0;
-  padding: 12px;
-  background: var(--panel-alt);
-  border-radius: var(--radius);
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.team-selection select {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: .8rem;
-  font-family: 'Inter', sans-serif;
-  flex: 1;
-  min-width: 150px;
-}
-
-#tournament-teams-list .team-entry {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 12px;
-  background: var(--panel-alt);
-  border-radius: 6px;
-  margin-bottom: 4px;
-}
-
-/* ---- Responsive ---- */
-@media (max-width: 760px) {
-  header {
-    padding: 12px 16px;
-  }
-
-  header nav {
-    width: 100%;
-    justify-content: center;
-    order: 2;
-  }
-
-  header .header-actions {
-    order: 3;
-    width: 100%;
-    justify-content: center;
-  }
-
-  header h1 {
-    font-size: 1.15rem;
-  }
-
-  header nav a {
-    font-size: .75rem;
-    padding: 4px 10px;
-  }
-
-  main {
-    padding: 16px;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .list-header,
-  .list-item {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    font-size: .75rem;
-  }
-
-  .list-header span:nth-child(3),
-  .list-header span:nth-child(4),
-  .list-item>*:nth-child(3),
-  .list-item>*:nth-child(4) {
-    display: none;
-  }
-
-  .list-item .actions {
-    grid-column: 1 / -1;
-    justify-content: flex-start;
-  }
-
-  .member-form {
-    flex-direction: column;
-  }
-
-  .member-form select,
-  .member-form input {
-    width: 100%;
-  }
-
-  .modal-content {
-    padding: 16px;
-    margin: 10px;
-  }
-
-  #bracket-container {
-    gap: 20px;
-  }
-
-  .bracket-round {
-    min-width: 120px;
-  }
-}
-```
-
-## app.js
-
-```javascript
 // ============================================================
 // app.js - Tournament Manager Application Logic
 // ============================================================
@@ -1190,7 +39,8 @@ function generateId() {
 }
 
 // ---- Activity Logger ----
-function logActivity(message, type = 'info') {
+function logActivity(message, type) {
+    if (type === undefined) type = 'info';
     data.activities.unshift({
         id: generateId(),
         message: message,
@@ -1204,9 +54,9 @@ function logActivity(message, type = 'info') {
 
 // ---- Update Dashboard ----
 function updateDashboard() {
-    const charCount = document.getElementById('char-count');
-    const teamCount = document.getElementById('team-count');
-    const tournCount = document.getElementById('tournament-count');
+    var charCount = document.getElementById('char-count');
+    var teamCount = document.getElementById('team-count');
+    var tournCount = document.getElementById('tournament-count');
 
     if (charCount) charCount.textContent = data.characters.length;
     if (teamCount) teamCount.textContent = data.teams.length;
@@ -1216,7 +66,7 @@ function updateDashboard() {
 }
 
 function updateActivityLog() {
-    const log = document.getElementById('activity-log');
+    var log = document.getElementById('activity-log');
     if (!log) return;
 
     if (data.activities.length === 0) {
@@ -1224,9 +74,9 @@ function updateActivityLog() {
         return;
     }
 
-    log.innerHTML = data.activities.slice(0, 10).map(a =>
-        `<div class="activity-item">${a.message}</div>`
-    ).join('');
+    log.innerHTML = data.activities.slice(0, 10).map(function(a) {
+        return '<div class="activity-item">' + a.message + '</div>';
+    }).join('');
 }
 
 // ============================================================
@@ -1235,12 +85,12 @@ function updateActivityLog() {
 
 // ---- Export JSON ----
 function exportJSON() {
-    const jsonData = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    var jsonData = JSON.stringify(data, null, 2);
+    var blob = new Blob([jsonData], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
     a.href = url;
-    a.download = `tournament-data-${new Date().toISOString().slice(0,10)}.json`;
+    a.download = 'tournament-data-' + new Date().toISOString().slice(0,10) + '.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1250,10 +100,10 @@ function exportJSON() {
 
 // ---- Import JSON ----
 function importJSON(file) {
-    const reader = new FileReader();
+    var reader = new FileReader();
     reader.onload = function(e) {
         try {
-            const imported = JSON.parse(e.target.result);
+            var imported = JSON.parse(e.target.result);
             
             if (!imported.characters || !imported.teams || !imported.tournaments) {
                 alert('Invalid data format. Missing required fields.');
@@ -1277,11 +127,11 @@ function importJSON(file) {
 
 // ---- Export CSV ----
 function exportCSV() {
-    const lines = [];
+    var lines = [];
 
     lines.push('# CHARACTERS');
     lines.push('FirstName,MiddleName,LastName,BirthYear,Gender,AssociatedNames,EyeColor,HairColor,SkinColor,Height,Build,AppearanceNotes,Notes');
-    data.characters.forEach(c => {
+    data.characters.forEach(function(c) {
         lines.push([
             csvField(c.firstName || ''),
             csvField(c.middleName || ''),
@@ -1301,44 +151,44 @@ function exportCSV() {
 
     lines.push('\n# TEAMS');
     lines.push('TeamName,TeamType,FoundedYear,Status');
-    data.teams.forEach(t => {
-        lines.push(`${csvField(t.name)},${csvField(t.type)},${t.foundedYear || ''},${csvField(t.status)}`);
+    data.teams.forEach(function(t) {
+        lines.push(csvField(t.name) + ',' + csvField(t.type) + ',' + (t.foundedYear || '') + ',' + csvField(t.status));
     });
 
     lines.push('\n# TEAM MEMBERS');
     lines.push('TeamName,CharacterFirstName,CharacterLastName,Role,JoinYear,LeaveYear');
-    data.teams.forEach(t => {
+    data.teams.forEach(function(t) {
         if (t.members) {
-            t.members.forEach(m => {
-                const char = data.characters.find(c => c.id === m.characterId);
-                lines.push(`${csvField(t.name)},${csvField(char ? char.firstName : '')},${csvField(char ? char.lastName : '')},${csvField(m.role)},${m.joinYear || ''},${m.leaveYear || ''}`);
+            t.members.forEach(function(m) {
+                var char = data.characters.find(function(c) { return c.id === m.characterId; });
+                lines.push(csvField(t.name) + ',' + csvField(char ? char.firstName : '') + ',' + csvField(char ? char.lastName : '') + ',' + csvField(m.role) + ',' + (m.joinYear || '') + ',' + (m.leaveYear || ''));
             });
         }
     });
 
     lines.push('\n# TOURNAMENTS');
     lines.push('TournamentName,AcademicYear,StartWeek,EndWeek,Status,Description');
-    data.tournaments.forEach(t => {
-        lines.push(`${csvField(t.name)},${csvField(t.academicYear)},${t.startWeek || ''},${t.endWeek || ''},${csvField(t.status)},${csvField(t.description)}`);
+    data.tournaments.forEach(function(t) {
+        lines.push(csvField(t.name) + ',' + csvField(t.academicYear) + ',' + (t.startWeek || '') + ',' + (t.endWeek || '') + ',' + csvField(t.status) + ',' + csvField(t.description));
     });
 
     lines.push('\n# TOURNAMENT TEAMS');
     lines.push('TournamentName,TeamName,Seed');
-    data.tournaments.forEach(t => {
+    data.tournaments.forEach(function(t) {
         if (t.teams) {
-            t.teams.forEach(entry => {
-                const team = data.teams.find(tm => tm.id === entry.teamId);
-                lines.push(`${csvField(t.name)},${csvField(team ? team.name : '')},${entry.seed || ''}`);
+            t.teams.forEach(function(entry) {
+                var team = data.teams.find(function(tm) { return tm.id === entry.teamId; });
+                lines.push(csvField(t.name) + ',' + csvField(team ? team.name : '') + ',' + (entry.seed || ''));
             });
         }
     });
 
-    const csvContent = lines.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    var csvContent = lines.join('\n');
+    var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
     a.href = url;
-    a.download = `tournament-data-${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = 'tournament-data-' + new Date().toISOString().slice(0,10) + '.csv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1348,25 +198,25 @@ function exportCSV() {
 
 // ---- Import CSV ----
 function importCSV(file) {
-    const reader = new FileReader();
+    var reader = new FileReader();
     reader.onload = function(e) {
         try {
             if (!confirm('This will replace all current data. Continue?')) return;
 
-            const lines = e.target.result.split('\n');
-            let section = '';
-            let newData = {
+            var lines = e.target.result.split('\n');
+            var section = '';
+            var newData = {
                 characters: [],
                 teams: [],
                 tournaments: [],
                 activities: []
             };
-            let charMap = {};
-            let teamMap = {};
-            let tournMap = {};
+            var charMap = {};
+            var teamMap = {};
+            var tournMap = {};
 
-            for (let i = 0; i < lines.length; i++) {
-                let line = lines[i].trim();
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].trim();
                 if (!line) continue;
 
                 if (line.startsWith('# CHARACTERS')) { section = 'characters'; continue; }
@@ -1379,10 +229,10 @@ function importCSV(file) {
                     line.startsWith('TeamName,') || 
                     line.startsWith('TournamentName,')) continue;
 
-                const values = parseCSVLine(line);
+                var values = parseCSVLine(line);
 
                 if (section === 'characters' && values.length >= 13) {
-                    const char = {
+                    var char = {
                         id: generateId(),
                         firstName: values[0] || '',
                         middleName: values[1] || '',
@@ -1400,11 +250,11 @@ function importCSV(file) {
                         createdAt: new Date().toISOString()
                     };
                     newData.characters.push(char);
-                    const key = (char.firstName + '|' + char.lastName).toLowerCase();
+                    var key = (char.firstName + '|' + char.lastName).toLowerCase();
                     charMap[key] = char;
                 }
                 else if (section === 'teams' && values.length >= 4) {
-                    const team = {
+                    var team = {
                         id: generateId(),
                         name: values[0] || '',
                         type: values[1] || '',
@@ -1417,13 +267,13 @@ function importCSV(file) {
                     teamMap[team.name.toLowerCase()] = team;
                 }
                 else if (section === 'members' && values.length >= 6) {
-                    const teamName = values[0];
-                    const charFirstName = values[1];
-                    const charLastName = values[2];
-                    const team = teamMap[teamName.toLowerCase()];
+                    var teamName = values[0];
+                    var charFirstName = values[1];
+                    var charLastName = values[2];
+                    var team = teamMap[teamName.toLowerCase()];
                     if (team) {
-                        const key = (charFirstName + '|' + charLastName).toLowerCase();
-                        const char = charMap[key];
+                        var key = (charFirstName + '|' + charLastName).toLowerCase();
+                        var char = charMap[key];
                         if (char) {
                             team.members.push({
                                 characterId: char.id,
@@ -1435,7 +285,7 @@ function importCSV(file) {
                     }
                 }
                 else if (section === 'tournaments' && values.length >= 6) {
-                    const tourn = {
+                    var tourn = {
                         id: generateId(),
                         name: values[0] || '',
                         academicYear: values[1] || '',
@@ -1451,10 +301,10 @@ function importCSV(file) {
                     tournMap[tourn.name.toLowerCase()] = tourn;
                 }
                 else if (section === 'tournament_teams' && values.length >= 3) {
-                    const tournName = values[0];
-                    const teamName = values[1];
-                    const tourn = tournMap[tournName.toLowerCase()];
-                    const team = teamMap[teamName.toLowerCase()];
+                    var tournName = values[0];
+                    var teamName = values[1];
+                    var tourn = tournMap[tournName.toLowerCase()];
+                    var team = teamMap[teamName.toLowerCase()];
                     if (tourn && team) {
                         tourn.teams.push({
                             teamId: team.id,
@@ -1474,7 +324,7 @@ function importCSV(file) {
             logActivity('Imported data from CSV');
             renderAll();
             updateDashboard();
-            alert(`Imported successfully!\nCharacters: ${data.characters.length}\nTeams: ${data.teams.length}\nTournaments: ${data.tournaments.length}`);
+            alert('Imported successfully!\nCharacters: ' + data.characters.length + '\nTeams: ' + data.teams.length + '\nTournaments: ' + data.tournaments.length);
         } catch (err) {
             alert('Failed to import CSV: ' + err.message);
         }
@@ -1484,7 +334,7 @@ function importCSV(file) {
 
 // ---- Export Template CSV ----
 function exportTemplateCSV() {
-    const lines = [
+    var lines = [
         '# CHARACTERS',
         'FirstName,MiddleName,LastName,BirthYear,Gender,AssociatedNames,EyeColor,HairColor,SkinColor,Height,Build,AppearanceNotes,Notes',
         'John,,Doe,1990,Male,,Blue,Brown,Fair,5\'10",Athletic,,Example character',
@@ -1510,12 +360,12 @@ function exportTemplateCSV() {
         'Spring Cup,Another Team,2'
     ];
 
-    const csvContent = lines.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    var csvContent = lines.join('\n');
+    var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
     a.href = url;
-    a.download = `tournament-template.csv`;
+    a.download = 'tournament-template.csv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1526,20 +376,20 @@ function exportTemplateCSV() {
 // ---- CSV Helper Functions ----
 function csvField(value) {
     if (value === null || value === undefined) return '';
-    const str = String(value);
-    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    var str = String(value);
+    if (str.indexOf(',') !== -1 || str.indexOf('"') !== -1 || str.indexOf('\n') !== -1) {
         return '"' + str.replace(/"/g, '""') + '"';
     }
     return str;
 }
 
 function parseCSVLine(line) {
-    const values = [];
-    let current = '';
-    let inQuotes = false;
+    var values = [];
+    var current = '';
+    var inQuotes = false;
     
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
+    for (var i = 0; i < line.length; i++) {
+        var char = line[i];
         if (inQuotes) {
             if (char === '"' && line[i+1] === '"') {
                 current += '"';
@@ -1566,8 +416,8 @@ function parseCSVLine(line) {
 
 // ---- Render All ----
 function renderAll() {
-    const path = window.location.pathname;
-    const page = path.split('/').pop() || 'index.html';
+    var path = window.location.pathname;
+    var page = path.split('/').pop() || 'index.html';
     
     if (page === 'index.html' || page === '') {
         updateDashboard();
@@ -1582,7 +432,7 @@ function renderAll() {
 
 // ---- Character Management ----
 function renderCharacters() {
-    const container = document.getElementById('characters-container');
+    var container = document.getElementById('characters-container');
     if (!container) return;
 
     if (data.characters.length === 0) {
@@ -1590,50 +440,52 @@ function renderCharacters() {
         return;
     }
 
-    container.innerHTML = data.characters.map(char => {
-        const fullName = [char.firstName, char.middleName, char.lastName].filter(Boolean).join(' ');
-        const appearance = [char.eyes, char.hair, char.skin].filter(Boolean).join(', ');
-        return `
-        <div class="list-item" data-id="${char.id}">
-            <span><strong>${fullName}</strong></span>
-            <span>${char.birthYear || '-'}</span>
-            <span>${appearance || '-'}</span>
-            <span>${getCharacterTeamCount(char.id)}</span>
-            <span class="actions">
-                <button class="small edit-character" data-id="${char.id}">✎</button>
-                <button class="small danger delete-character" data-id="${char.id}">✕</button>
-            </span>
-        </div>
-    `}).join('');
-
-    container.querySelectorAll('.edit-character').forEach(btn => {
-        btn.addEventListener('click', () => editCharacter(btn.dataset.id));
+    var html = '';
+    data.characters.forEach(function(char) {
+        var fullName = [char.firstName, char.middleName, char.lastName].filter(function(n) { return n; }).join(' ');
+        var appearance = [char.eyes, char.hair, char.skin].filter(function(n) { return n; }).join(', ');
+        html += '<div class="list-item" data-id="' + char.id + '">' +
+            '<span><strong>' + fullName + '</strong></span>' +
+            '<span>' + (char.birthYear || '-') + '</span>' +
+            '<span>' + (appearance || '-') + '</span>' +
+            '<span>' + getCharacterTeamCount(char.id) + '</span>' +
+            '<span class="actions">' +
+                '<button class="small edit-character" data-id="' + char.id + '">✎</button>' +
+                '<button class="small danger delete-character" data-id="' + char.id + '">✕</button>' +
+            '</span>' +
+        '</div>';
     });
-    container.querySelectorAll('.delete-character').forEach(btn => {
-        btn.addEventListener('click', () => deleteCharacter(btn.dataset.id));
+    container.innerHTML = html;
+
+    container.querySelectorAll('.edit-character').forEach(function(btn) {
+        btn.addEventListener('click', function() { editCharacter(btn.dataset.id); });
+    });
+    container.querySelectorAll('.delete-character').forEach(function(btn) {
+        btn.addEventListener('click', function() { deleteCharacter(btn.dataset.id); });
     });
 }
 
 function getCharacterTeamCount(charId) {
-    let count = 0;
-    data.teams.forEach(team => {
-        if (team.members && team.members.some(m => m.characterId === charId)) {
+    var count = 0;
+    data.teams.forEach(function(team) {
+        if (team.members && team.members.some(function(m) { return m.characterId === charId; })) {
             count++;
         }
     });
     return count || '-';
 }
 
-function showCharacterForm(editId = null) {
-    const form = document.getElementById('character-form');
-    const title = document.getElementById('form-title');
-    const formElement = document.getElementById('char-form');
+function showCharacterForm(editId) {
+    if (editId === undefined) editId = null;
+    var form = document.getElementById('character-form');
+    var title = document.getElementById('form-title');
+    var formElement = document.getElementById('char-form');
 
     form.classList.remove('hidden');
 
     if (editId) {
         title.textContent = 'Edit Character';
-        const char = data.characters.find(c => c.id === editId);
+        var char = data.characters.find(function(c) { return c.id === editId; });
         if (char) {
             document.getElementById('char-firstname').value = char.firstName || '';
             document.getElementById('char-middlename').value = char.middleName || '';
@@ -1665,10 +517,10 @@ function hideCharacterForm() {
 
 function saveCharacter(e) {
     e.preventDefault();
-    const form = e.target;
-    const editId = form.dataset.editId;
+    var form = e.target;
+    var editId = form.dataset.editId;
 
-    const charData = {
+    var charData = {
         firstName: document.getElementById('char-firstname').value.trim(),
         middleName: document.getElementById('char-middlename').value.trim(),
         lastName: document.getElementById('char-lastname').value.trim(),
@@ -1690,19 +542,31 @@ function saveCharacter(e) {
     }
 
     if (editId) {
-        const index = data.characters.findIndex(c => c.id === editId);
+        var index = data.characters.findIndex(function(c) { return c.id === editId; });
         if (index !== -1) {
-            data.characters[index] = { ...data.characters[index], ...charData };
-            logActivity(`Updated character: ${charData.firstName}`);
+            data.characters[index] = Object.assign({}, data.characters[index], charData);
+            logActivity('Updated character: ' + charData.firstName);
         }
     } else {
-        const newChar = {
+        var newChar = {
             id: generateId(),
-            ...charData,
+            firstName: charData.firstName,
+            middleName: charData.middleName,
+            lastName: charData.lastName,
+            birthYear: charData.birthYear,
+            gender: charData.gender,
+            associatedNames: charData.associatedNames,
+            eyes: charData.eyes,
+            hair: charData.hair,
+            skin: charData.skin,
+            height: charData.height,
+            build: charData.build,
+            appearanceNotes: charData.appearanceNotes,
+            notes: charData.notes,
             createdAt: new Date().toISOString()
         };
         data.characters.push(newChar);
-        logActivity(`Added character: ${charData.firstName}`);
+        logActivity('Added character: ' + charData.firstName);
     }
 
     saveData();
@@ -1718,27 +582,27 @@ function editCharacter(id) {
 function deleteCharacter(id) {
     if (!confirm('Delete this character permanently? This will remove them from all teams.')) return;
 
-    const char = data.characters.find(c => c.id === id);
+    var char = data.characters.find(function(c) { return c.id === id; });
     if (!char) return;
 
-    data.teams.forEach(team => {
+    data.teams.forEach(function(team) {
         if (team.members) {
-            team.members = team.members.filter(m => m.characterId !== id);
+            team.members = team.members.filter(function(m) { return m.characterId !== id; });
         }
     });
 
-    data.characters = data.characters.filter(c => c.id !== id);
-    logActivity(`Deleted character: ${char.firstName}`);
+    data.characters = data.characters.filter(function(c) { return c.id !== id; });
+    logActivity('Deleted character: ' + char.firstName);
     saveData();
     renderCharacters();
     updateDashboard();
 }
 
 // ---- Team Management ----
-let currentEditMember = null;
+var currentEditMember = null;
 
 function renderTeams() {
-    const container = document.getElementById('teams-container');
+    var container = document.getElementById('teams-container');
     if (!container) return;
 
     if (data.teams.length === 0) {
@@ -1746,41 +610,44 @@ function renderTeams() {
         return;
     }
 
-    container.innerHTML = data.teams.map(team => `
-        <div class="list-item" data-id="${team.id}">
-            <span><strong>${team.name}</strong></span>
-            <span>${team.type || '-'}</span>
-            <span>${team.members ? team.members.length : 0}</span>
-            <span>${team.status || 'active'}</span>
-            <span class="actions">
-                <button class="small manage-members" data-id="${team.id}">👥</button>
-                <button class="small edit-team" data-id="${team.id}">✎</button>
-                <button class="small danger delete-team" data-id="${team.id}">✕</button>
-            </span>
-        </div>
-    `).join('');
+    var html = '';
+    data.teams.forEach(function(team) {
+        html += '<div class="list-item" data-id="' + team.id + '">' +
+            '<span><strong>' + team.name + '</strong></span>' +
+            '<span>' + (team.type || '-') + '</span>' +
+            '<span>' + (team.members ? team.members.length : 0) + '</span>' +
+            '<span>' + (team.status || 'active') + '</span>' +
+            '<span class="actions">' +
+                '<button class="small manage-members" data-id="' + team.id + '">👥</button>' +
+                '<button class="small edit-team" data-id="' + team.id + '">✎</button>' +
+                '<button class="small danger delete-team" data-id="' + team.id + '">✕</button>' +
+            '</span>' +
+        '</div>';
+    });
+    container.innerHTML = html;
 
-    container.querySelectorAll('.manage-members').forEach(btn => {
-        btn.addEventListener('click', () => openMemberModal(btn.dataset.id));
+    container.querySelectorAll('.manage-members').forEach(function(btn) {
+        btn.addEventListener('click', function() { openMemberModal(btn.dataset.id); });
     });
-    container.querySelectorAll('.edit-team').forEach(btn => {
-        btn.addEventListener('click', () => editTeam(btn.dataset.id));
+    container.querySelectorAll('.edit-team').forEach(function(btn) {
+        btn.addEventListener('click', function() { editTeam(btn.dataset.id); });
     });
-    container.querySelectorAll('.delete-team').forEach(btn => {
-        btn.addEventListener('click', () => deleteTeam(btn.dataset.id));
+    container.querySelectorAll('.delete-team').forEach(function(btn) {
+        btn.addEventListener('click', function() { deleteTeam(btn.dataset.id); });
     });
 }
 
-function showTeamForm(editId = null) {
-    const form = document.getElementById('team-form');
-    const title = document.getElementById('team-form-title');
-    const formElement = document.getElementById('team-form-inner');
+function showTeamForm(editId) {
+    if (editId === undefined) editId = null;
+    var form = document.getElementById('team-form');
+    var title = document.getElementById('team-form-title');
+    var formElement = document.getElementById('team-form-inner');
 
     form.classList.remove('hidden');
 
     if (editId) {
         title.textContent = 'Edit Team';
-        const team = data.teams.find(t => t.id === editId);
+        var team = data.teams.find(function(t) { return t.id === editId; });
         if (team) {
             document.getElementById('team-name').value = team.name || '';
             document.getElementById('team-type').value = team.type || '';
@@ -1803,10 +670,10 @@ function hideTeamForm() {
 
 function saveTeam(e) {
     e.preventDefault();
-    const form = e.target;
-    const editId = form.dataset.editId;
+    var form = e.target;
+    var editId = form.dataset.editId;
 
-    const teamData = {
+    var teamData = {
         name: document.getElementById('team-name').value.trim(),
         type: document.getElementById('team-type').value,
         foundedYear: document.getElementById('team-founded').value || '',
@@ -1823,20 +690,23 @@ function saveTeam(e) {
     }
 
     if (editId) {
-        const index = data.teams.findIndex(t => t.id === editId);
+        var index = data.teams.findIndex(function(t) { return t.id === editId; });
         if (index !== -1) {
-            data.teams[index] = { ...data.teams[index], ...teamData };
-            logActivity(`Updated team: ${teamData.name}`);
+            data.teams[index] = Object.assign({}, data.teams[index], teamData);
+            logActivity('Updated team: ' + teamData.name);
         }
     } else {
-        const newTeam = {
+        var newTeam = {
             id: generateId(),
-            ...teamData,
+            name: teamData.name,
+            type: teamData.type,
+            foundedYear: teamData.foundedYear,
+            status: teamData.status,
             members: [],
             createdAt: new Date().toISOString()
         };
         data.teams.push(newTeam);
-        logActivity(`Added team: ${teamData.name}`);
+        logActivity('Added team: ' + teamData.name);
     }
 
     saveData();
@@ -1850,19 +720,19 @@ function editTeam(id) {
 }
 
 function deleteTeam(id) {
-    const team = data.teams.find(t => t.id === id);
+    var team = data.teams.find(function(t) { return t.id === id; });
     if (!team) return;
 
-    if (!confirm(`Delete "${team.name}" permanently? This will also remove it from tournaments.`)) return;
+    if (!confirm('Delete "' + team.name + '" permanently? This will also remove it from tournaments.')) return;
 
-    data.tournaments.forEach(t => {
+    data.tournaments.forEach(function(t) {
         if (t.teams) {
-            t.teams = t.teams.filter(entry => entry.teamId !== id);
+            t.teams = t.teams.filter(function(entry) { return entry.teamId !== id; });
         }
     });
 
-    data.teams = data.teams.filter(t => t.id !== id);
-    logActivity(`Deleted team: ${team.name}`);
+    data.teams = data.teams.filter(function(t) { return t.id !== id; });
+    logActivity('Deleted team: ' + team.name);
     saveData();
     renderTeams();
     updateDashboard();
@@ -1870,21 +740,21 @@ function deleteTeam(id) {
 }
 
 // ---- Member Management Modal ----
-let currentTeamId = null;
+var currentTeamId = null;
 
 function openMemberModal(teamId) {
-    const modal = document.getElementById('member-modal');
-    const team = data.teams.find(t => t.id === teamId);
+    var modal = document.getElementById('member-modal');
+    var team = data.teams.find(function(t) { return t.id === teamId; });
     if (!team) return;
 
     currentTeamId = teamId;
-    document.getElementById('modal-team-name').textContent = `${team.name} - Members`;
+    document.getElementById('modal-team-name').textContent = team.name + ' - Members';
 
-    const select = document.getElementById('member-character');
+    var select = document.getElementById('member-character');
     select.innerHTML = '<option value="">Select character...</option>';
-    data.characters.forEach(char => {
-        const name = [char.firstName, char.middleName, char.lastName].filter(Boolean).join(' ');
-        select.innerHTML += `<option value="${char.id}">${name}</option>`;
+    data.characters.forEach(function(char) {
+        var name = [char.firstName, char.middleName, char.lastName].filter(function(n) { return n; }).join(' ');
+        select.innerHTML += '<option value="' + char.id + '">' + name + '</option>';
     });
 
     document.getElementById('member-role').value = '';
@@ -1902,55 +772,55 @@ function closeMemberModal() {
 }
 
 function renderMembers(team) {
-    const container = document.getElementById('members-list');
+    var container = document.getElementById('members-list');
     if (!team.members || team.members.length === 0) {
         container.innerHTML = '<p class="empty-state">No members in this team</p>';
         return;
     }
 
-    container.innerHTML = team.members.map((member, index) => {
-        const char = data.characters.find(c => c.id === member.characterId);
-        const name = char ? [char.firstName, char.middleName, char.lastName].filter(Boolean).join(' ') : 'Unknown';
-        return `
-            <div class="member-entry">
-                <div class="member-info">
-                    <span><strong>${name}</strong></span>
-                    <span class="role">${member.role || 'Member'}</span>
-                    <span class="years">${member.joinYear || '?'} ${member.leaveYear ? '→ ' + member.leaveYear : ''}</span>
-                </div>
-                <div class="member-actions">
-                    <button class="small edit-member" data-team="${team.id}" data-index="${index}">✎</button>
-                    <button class="small danger remove-member" data-team="${team.id}" data-char="${member.characterId}">✕</button>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    container.querySelectorAll('.edit-member').forEach(btn => {
-        btn.addEventListener('click', () => openEditMemberModal(btn.dataset.team, parseInt(btn.dataset.index)));
+    var html = '';
+    team.members.forEach(function(member, index) {
+        var char = data.characters.find(function(c) { return c.id === member.characterId; });
+        var name = char ? [char.firstName, char.middleName, char.lastName].filter(function(n) { return n; }).join(' ') : 'Unknown';
+        html += '<div class="member-entry">' +
+            '<div class="member-info">' +
+                '<span><strong>' + name + '</strong></span>' +
+                '<span class="role">' + (member.role || 'Member') + '</span>' +
+                '<span class="years">' + (member.joinYear || '?') + (member.leaveYear ? ' → ' + member.leaveYear : '') + '</span>' +
+            '</div>' +
+            '<div class="member-actions">' +
+                '<button class="small edit-member" data-team="' + team.id + '" data-index="' + index + '">✎</button>' +
+                '<button class="small danger remove-member" data-team="' + team.id + '" data-char="' + member.characterId + '">✕</button>' +
+            '</div>' +
+        '</div>';
     });
-    container.querySelectorAll('.remove-member').forEach(btn => {
-        btn.addEventListener('click', () => removeMember(btn.dataset.team, btn.dataset.char));
+    container.innerHTML = html;
+
+    container.querySelectorAll('.edit-member').forEach(function(btn) {
+        btn.addEventListener('click', function() { openEditMemberModal(btn.dataset.team, parseInt(btn.dataset.index)); });
+    });
+    container.querySelectorAll('.remove-member').forEach(function(btn) {
+        btn.addEventListener('click', function() { removeMember(btn.dataset.team, btn.dataset.char); });
     });
 }
 
 function addMember() {
     if (!currentTeamId) return;
 
-    const charId = document.getElementById('member-character').value;
-    const role = document.getElementById('member-role').value.trim();
-    const joinYear = document.getElementById('member-join-year').value;
-    const leaveYear = document.getElementById('member-leave-year').value;
+    var charId = document.getElementById('member-character').value;
+    var role = document.getElementById('member-role').value.trim();
+    var joinYear = document.getElementById('member-join-year').value;
+    var leaveYear = document.getElementById('member-leave-year').value;
 
     if (!charId) {
         alert('Please select a character.');
         return;
     }
 
-    const team = data.teams.find(t => t.id === currentTeamId);
+    var team = data.teams.find(function(t) { return t.id === currentTeamId; });
     if (!team) return;
 
-    if (team.members && team.members.some(m => m.characterId === charId)) {
+    if (team.members && team.members.some(function(m) { return m.characterId === charId; })) {
         alert('This character is already in the team.');
         return;
     }
@@ -1964,8 +834,8 @@ function addMember() {
         leaveYear: leaveYear || ''
     });
 
-    const char = data.characters.find(c => c.id === charId);
-    logActivity(`Added ${char ? char.firstName : 'character'} to team: ${team.name}`);
+    var char = data.characters.find(function(c) { return c.id === charId; });
+    logActivity('Added ' + (char ? char.firstName : 'character') + ' to team: ' + team.name);
     saveData();
     renderMembers(team);
     renderTeams();
@@ -1979,12 +849,12 @@ function addMember() {
 function removeMember(teamId, charId) {
     if (!confirm('Remove this member from the team?')) return;
 
-    const team = data.teams.find(t => t.id === teamId);
+    var team = data.teams.find(function(t) { return t.id === teamId; });
     if (!team) return;
 
-    team.members = team.members.filter(m => m.characterId !== charId);
-    const char = data.characters.find(c => c.id === charId);
-    logActivity(`Removed ${char ? char.firstName : 'character'} from team: ${team.name}`);
+    team.members = team.members.filter(function(m) { return m.characterId !== charId; });
+    var char = data.characters.find(function(c) { return c.id === charId; });
+    logActivity('Removed ' + (char ? char.firstName : 'character') + ' from team: ' + team.name);
     saveData();
     renderMembers(team);
     renderTeams();
@@ -1993,14 +863,14 @@ function removeMember(teamId, charId) {
 
 // ---- Edit Member Modal ----
 function openEditMemberModal(teamId, index) {
-    const team = data.teams.find(t => t.id === teamId);
+    var team = data.teams.find(function(t) { return t.id === teamId; });
     if (!team || !team.members || !team.members[index]) return;
 
-    const member = team.members[index];
-    const char = data.characters.find(c => c.id === member.characterId);
-    const name = char ? [char.firstName, char.middleName, char.lastName].filter(Boolean).join(' ') : 'Unknown';
+    var member = team.members[index];
+    var char = data.characters.find(function(c) { return c.id === member.characterId; });
+    var name = char ? [char.firstName, char.middleName, char.lastName].filter(function(n) { return n; }).join(' ') : 'Unknown';
 
-    currentEditMember = { teamId, index };
+    currentEditMember = { teamId: teamId, index: index };
 
     document.getElementById('edit-member-name').textContent = name;
     document.getElementById('edit-member-role').value = member.role || '';
@@ -2019,20 +889,21 @@ function saveEditMember(e) {
     e.preventDefault();
     if (!currentEditMember) return;
 
-    const { teamId, index } = currentEditMember;
-    const team = data.teams.find(t => t.id === teamId);
+    var teamId = currentEditMember.teamId;
+    var index = currentEditMember.index;
+    var team = data.teams.find(function(t) { return t.id === teamId; });
     if (!team || !team.members || !team.members[index]) return;
 
-    const role = document.getElementById('edit-member-role').value.trim();
-    const joinYear = document.getElementById('edit-member-join-year').value;
-    const leaveYear = document.getElementById('edit-member-leave-year').value;
+    var role = document.getElementById('edit-member-role').value.trim();
+    var joinYear = document.getElementById('edit-member-join-year').value;
+    var leaveYear = document.getElementById('edit-member-leave-year').value;
 
     team.members[index].role = role || 'Member';
     team.members[index].joinYear = joinYear || '';
     team.members[index].leaveYear = leaveYear || '';
 
-    const char = data.characters.find(c => c.id === team.members[index].characterId);
-    logActivity(`Updated member ${char ? char.firstName : ''} in team: ${team.name}`);
+    var char = data.characters.find(function(c) { return c.id === team.members[index].characterId; });
+    logActivity('Updated member ' + (char ? char.firstName : '') + ' in team: ' + team.name);
     saveData();
     renderMembers(team);
     renderTeams();
@@ -2041,7 +912,7 @@ function saveEditMember(e) {
 
 // ---- Tournament Management ----
 function renderTournaments() {
-    const container = document.getElementById('tournaments-container');
+    var container = document.getElementById('tournaments-container');
     if (!container) return;
 
     if (data.tournaments.length === 0) {
@@ -2049,46 +920,47 @@ function renderTournaments() {
         return;
     }
 
-    container.innerHTML = data.tournaments.map(tourn => {
-        const teamCount = tourn.teams ? tourn.teams.length : 0;
+    var html = '';
+    data.tournaments.forEach(function(tourn) {
+        var teamCount = tourn.teams ? tourn.teams.length : 0;
 
-        return `
-            <div class="list-item" data-id="${tourn.id}">
-                <span><strong>${tourn.name}</strong></span>
-                <span>${tourn.academicYear || '-'}</span>
-                <span>${tourn.startWeek || '?'} - ${tourn.endWeek || '?'}</span>
-                <span>${teamCount}</span>
-                <span>${tourn.status || 'draft'}</span>
-                <span class="actions">
-                    <button class="small view-tournament" data-id="${tourn.id}">📋</button>
-                    <button class="small edit-tournament" data-id="${tourn.id}">✎</button>
-                    <button class="small danger delete-tournament" data-id="${tourn.id}">✕</button>
-                </span>
-            </div>
-        `;
-    }).join('');
+        html += '<div class="list-item" data-id="' + tourn.id + '">' +
+            '<span><strong>' + tourn.name + '</strong></span>' +
+            '<span>' + (tourn.academicYear || '-') + '</span>' +
+            '<span>' + (tourn.startWeek || '?') + ' - ' + (tourn.endWeek || '?') + '</span>' +
+            '<span>' + teamCount + '</span>' +
+            '<span>' + (tourn.status || 'draft') + '</span>' +
+            '<span class="actions">' +
+                '<button class="small view-tournament" data-id="' + tourn.id + '">📋</button>' +
+                '<button class="small edit-tournament" data-id="' + tourn.id + '">✎</button>' +
+                '<button class="small danger delete-tournament" data-id="' + tourn.id + '">✕</button>' +
+            '</span>' +
+        '</div>';
+    });
+    container.innerHTML = html;
 
-    container.querySelectorAll('.view-tournament').forEach(btn => {
-        btn.addEventListener('click', () => viewTournament(btn.dataset.id));
+    container.querySelectorAll('.view-tournament').forEach(function(btn) {
+        btn.addEventListener('click', function() { viewTournament(btn.dataset.id); });
     });
-    container.querySelectorAll('.edit-tournament').forEach(btn => {
-        btn.addEventListener('click', () => editTournament(btn.dataset.id));
+    container.querySelectorAll('.edit-tournament').forEach(function(btn) {
+        btn.addEventListener('click', function() { editTournament(btn.dataset.id); });
     });
-    container.querySelectorAll('.delete-tournament').forEach(btn => {
-        btn.addEventListener('click', () => deleteTournament(btn.dataset.id));
+    container.querySelectorAll('.delete-tournament').forEach(function(btn) {
+        btn.addEventListener('click', function() { deleteTournament(btn.dataset.id); });
     });
 }
 
-function showTournamentForm(editId = null) {
-    const form = document.getElementById('tournament-form');
-    const title = document.getElementById('tournament-form-title');
-    const formElement = document.getElementById('tournament-form-inner');
+function showTournamentForm(editId) {
+    if (editId === undefined) editId = null;
+    var form = document.getElementById('tournament-form');
+    var title = document.getElementById('tournament-form-title');
+    var formElement = document.getElementById('tournament-form-inner');
 
     form.classList.remove('hidden');
 
     if (editId) {
         title.textContent = 'Edit Tournament';
-        const tourn = data.tournaments.find(t => t.id === editId);
+        var tourn = data.tournaments.find(function(t) { return t.id === editId; });
         if (tourn) {
             document.getElementById('tournament-name').value = tourn.name || '';
             document.getElementById('tournament-year').value = tourn.academicYear || '';
@@ -2112,10 +984,10 @@ function hideTournamentForm() {
 
 function saveTournament(e) {
     e.preventDefault();
-    const form = e.target;
-    const editId = form.dataset.editId;
+    var form = e.target;
+    var editId = form.dataset.editId;
 
-    const tournData = {
+    var tournData = {
         name: document.getElementById('tournament-name').value.trim(),
         academicYear: document.getElementById('tournament-year').value.trim(),
         startWeek: document.getElementById('tournament-start-week').value || '',
@@ -2130,21 +1002,26 @@ function saveTournament(e) {
     }
 
     if (editId) {
-        const index = data.tournaments.findIndex(t => t.id === editId);
+        var index = data.tournaments.findIndex(function(t) { return t.id === editId; });
         if (index !== -1) {
-            data.tournaments[index] = { ...data.tournaments[index], ...tournData };
-            logActivity(`Updated tournament: ${tournData.name}`);
+            data.tournaments[index] = Object.assign({}, data.tournaments[index], tournData);
+            logActivity('Updated tournament: ' + tournData.name);
         }
     } else {
-        const newTourn = {
+        var newTourn = {
             id: generateId(),
-            ...tournData,
+            name: tournData.name,
+            academicYear: tournData.academicYear,
+            startWeek: tournData.startWeek,
+            endWeek: tournData.endWeek,
+            description: tournData.description,
+            status: tournData.status,
             teams: [],
             bracket: [],
             createdAt: new Date().toISOString()
         };
         data.tournaments.push(newTourn);
-        logActivity(`Created tournament: ${tournData.name}`);
+        logActivity('Created tournament: ' + tournData.name);
     }
 
     saveData();
@@ -2160,11 +1037,11 @@ function editTournament(id) {
 function deleteTournament(id) {
     if (!confirm('Delete this tournament permanently?')) return;
 
-    const tourn = data.tournaments.find(t => t.id === id);
+    var tourn = data.tournaments.find(function(t) { return t.id === id; });
     if (!tourn) return;
 
-    data.tournaments = data.tournaments.filter(t => t.id !== id);
-    logActivity(`Deleted tournament: ${tourn.name}`);
+    data.tournaments = data.tournaments.filter(function(t) { return t.id !== id; });
+    logActivity('Deleted tournament: ' + tourn.name);
     saveData();
     renderTournaments();
     updateDashboard();
@@ -2173,27 +1050,26 @@ function deleteTournament(id) {
 
 // ---- Tournament Detail View ----
 function viewTournament(id) {
-    const tourn = data.tournaments.find(t => t.id === id);
+    var tourn = data.tournaments.find(function(t) { return t.id === id; });
     if (!tourn) return;
 
-    const modal = document.getElementById('tournament-detail-modal');
+    var modal = document.getElementById('tournament-detail-modal');
     document.getElementById('detail-tournament-name').textContent = tourn.name;
 
-    const info = document.getElementById('tournament-info');
-    info.innerHTML = `
-        <p><strong>Academic Year:</strong> ${tourn.academicYear || 'N/A'}</p>
-        <p><strong>Weeks:</strong> ${tourn.startWeek || '?'} - ${tourn.endWeek || '?'}</p>
-        <p><strong>Status:</strong> ${tourn.status || 'draft'}</p>
-        <p><strong>Description:</strong> ${tourn.description || 'No description'}</p>
-    `;
+    var info = document.getElementById('tournament-info');
+    info.innerHTML = 
+        '<p><strong>Academic Year:</strong> ' + (tourn.academicYear || 'N/A') + '</p>' +
+        '<p><strong>Weeks:</strong> ' + (tourn.startWeek || '?') + ' - ' + (tourn.endWeek || '?') + '</p>' +
+        '<p><strong>Status:</strong> ' + (tourn.status || 'draft') + '</p>' +
+        '<p><strong>Description:</strong> ' + (tourn.description || 'No description') + '</p>';
 
-    const select = document.getElementById('tournament-team-select');
-    const academicTeams = data.teams.filter(t => t.type === 'academic' && t.status !== 'deleted');
+    var select = document.getElementById('tournament-team-select');
+    var academicTeams = data.teams.filter(function(t) { return t.type === 'academic' && t.status !== 'deleted'; });
     select.innerHTML = '<option value="">Select academic team...</option>';
-    academicTeams.forEach(team => {
-        const alreadyAdded = tourn.teams && tourn.teams.some(t => t.teamId === team.id);
+    academicTeams.forEach(function(team) {
+        var alreadyAdded = tourn.teams && tourn.teams.some(function(t) { return t.teamId === team.id; });
         if (!alreadyAdded) {
-            select.innerHTML += `<option value="${team.id}">${team.name}</option>`;
+            select.innerHTML += '<option value="' + team.id + '">' + team.name + '</option>';
         }
     });
 
@@ -2209,35 +1085,35 @@ function closeTournamentDetail() {
 }
 
 function renderTournamentTeams(tourn) {
-    const container = document.getElementById('tournament-teams-list');
+    var container = document.getElementById('tournament-teams-list');
     if (!tourn.teams || tourn.teams.length === 0) {
         container.innerHTML = '<p class="empty-state">No teams added to this tournament</p>';
         return;
     }
 
-    container.innerHTML = tourn.teams.map(entry => {
-        const team = data.teams.find(t => t.id === entry.teamId);
-        return `
-            <div class="team-entry">
-                <span>${team ? team.name : 'Unknown team'}</span>
-                <span>${entry.seed || 'Unseeded'}</span>
-                <button class="small danger remove-team-from-tournament" data-tourn="${tourn.id}" data-team="${entry.teamId}">✕</button>
-            </div>
-        `;
-    }).join('');
+    var html = '';
+    tourn.teams.forEach(function(entry) {
+        var team = data.teams.find(function(t) { return t.id === entry.teamId; });
+        html += '<div class="team-entry">' +
+            '<span>' + (team ? team.name : 'Unknown team') + '</span>' +
+            '<span>' + (entry.seed || 'Unseeded') + '</span>' +
+            '<button class="small danger remove-team-from-tournament" data-tourn="' + tourn.id + '" data-team="' + entry.teamId + '">✕</button>' +
+        '</div>';
+    });
+    container.innerHTML = html;
 
-    container.querySelectorAll('.remove-team-from-tournament').forEach(btn => {
-        btn.addEventListener('click', () => removeTeamFromTournament(btn.dataset.tourn, btn.dataset.team));
+    container.querySelectorAll('.remove-team-from-tournament').forEach(function(btn) {
+        btn.addEventListener('click', function() { removeTeamFromTournament(btn.dataset.tourn, btn.dataset.team); });
     });
 }
 
 function addTeamToTournament() {
-    const modal = document.getElementById('tournament-detail-modal');
-    const tournId = modal.dataset.tournamentId;
-    const tourn = data.tournaments.find(t => t.id === tournId);
+    var modal = document.getElementById('tournament-detail-modal');
+    var tournId = modal.dataset.tournamentId;
+    var tourn = data.tournaments.find(function(t) { return t.id === tournId; });
     if (!tourn) return;
 
-    const teamId = document.getElementById('tournament-team-select').value;
+    var teamId = document.getElementById('tournament-team-select').value;
     if (!teamId) {
         alert('Please select a team.');
         return;
@@ -2245,7 +1121,7 @@ function addTeamToTournament() {
 
     if (!tourn.teams) tourn.teams = [];
 
-    if (tourn.teams.some(t => t.teamId === teamId)) {
+    if (tourn.teams.some(function(t) { return t.teamId === teamId; })) {
         alert('Team already added to this tournament.');
         return;
     }
@@ -2255,8 +1131,8 @@ function addTeamToTournament() {
         seed: tourn.teams.length + 1
     });
 
-    const team = data.teams.find(t => t.id === teamId);
-    logActivity(`Added team ${team ? team.name : ''} to tournament: ${tourn.name}`);
+    var team = data.teams.find(function(t) { return t.id === teamId; });
+    logActivity('Added team ' + (team ? team.name : '') + ' to tournament: ' + tourn.name);
     saveData();
     viewTournament(tournId);
 }
@@ -2264,34 +1140,34 @@ function addTeamToTournament() {
 function removeTeamFromTournament(tournId, teamId) {
     if (!confirm('Remove this team from the tournament?')) return;
 
-    const tourn = data.tournaments.find(t => t.id === tournId);
+    var tourn = data.tournaments.find(function(t) { return t.id === tournId; });
     if (!tourn) return;
 
-    tourn.teams = tourn.teams.filter(t => t.teamId !== teamId);
-    const team = data.teams.find(t => t.id === teamId);
-    logActivity(`Removed team ${team ? team.name : ''} from tournament: ${tourn.name}`);
+    tourn.teams = tourn.teams.filter(function(t) { return t.teamId !== teamId; });
+    var team = data.teams.find(function(t) { return t.id === teamId; });
+    logActivity('Removed team ' + (team ? team.name : '') + ' from tournament: ' + tourn.name);
     saveData();
     viewTournament(tournId);
 }
 
 function renderBracket(tourn) {
-    const container = document.getElementById('bracket-container');
+    var container = document.getElementById('bracket-container');
     if (!tourn.teams || tourn.teams.length === 0) {
         container.innerHTML = '<p class="empty-state">Add teams to generate bracket</p>';
         return;
     }
 
-    const teams = tourn.teams.map(t => {
-        const team = data.teams.find(tm => tm.id === t.teamId);
+    var teams = tourn.teams.map(function(t) {
+        var team = data.teams.find(function(tm) { return tm.id === t.teamId; });
         return team ? team.name : 'Unknown';
     });
 
-    const rounds = [];
-    let currentTeams = [...teams];
+    var rounds = [];
+    var currentTeams = teams.slice();
 
     while (currentTeams.length > 1) {
-        const roundTeams = [];
-        for (let i = 0; i < currentTeams.length; i += 2) {
+        var roundTeams = [];
+        for (var i = 0; i < currentTeams.length; i += 2) {
             if (i + 1 < currentTeams.length) {
                 roundTeams.push([currentTeams[i], currentTeams[i + 1]]);
             } else {
@@ -2299,34 +1175,36 @@ function renderBracket(tourn) {
             }
         }
         rounds.push(roundTeams);
-        currentTeams = roundTeams.map(match => {
+        currentTeams = roundTeams.map(function(match) {
             return match[0] !== 'BYE' ? match[0] : match[1];
         });
     }
 
-    container.innerHTML = rounds.map((round, index) => `
-        <div class="bracket-round">
-            <div class="round-label">Round ${index + 1}</div>
-            ${round.map(match => `
-                <div class="bracket-match">
-                    <div class="team">${match[0] || '?'}</div>
-                    <div class="team">${match[1] || '?'}</div>
-                </div>
-            `).join('')}
-        </div>
-    `).join('');
+    var html = '';
+    rounds.forEach(function(round, index) {
+        html += '<div class="bracket-round">' +
+            '<div class="round-label">Round ' + (index + 1) + '</div>';
+        round.forEach(function(match) {
+            html += '<div class="bracket-match">' +
+                '<div class="team">' + (match[0] || '?') + '</div>' +
+                '<div class="team">' + (match[1] || '?') + '</div>' +
+            '</div>';
+        });
+        html += '</div>';
+    });
+    container.innerHTML = html;
 }
 
 // ---- Initialize Import/Export Buttons ----
 function initImportExport() {
-    document.querySelectorAll('#export-json-btn').forEach(btn => {
+    document.querySelectorAll('#export-json-btn').forEach(function(btn) {
         btn.addEventListener('click', exportJSON);
     });
 
-    document.querySelectorAll('#import-json-btn').forEach(btn => {
-        btn.addEventListener('click', () => document.getElementById('json-file-input').click());
+    document.querySelectorAll('#import-json-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() { document.getElementById('json-file-input').click(); });
     });
-    document.querySelectorAll('#json-file-input').forEach(input => {
+    document.querySelectorAll('#json-file-input').forEach(function(input) {
         input.addEventListener('change', function(e) {
             if (this.files.length > 0) {
                 importJSON(this.files[0]);
@@ -2335,14 +1213,14 @@ function initImportExport() {
         });
     });
 
-    document.querySelectorAll('#export-csv-btn').forEach(btn => {
+    document.querySelectorAll('#export-csv-btn').forEach(function(btn) {
         btn.addEventListener('click', exportCSV);
     });
 
-    document.querySelectorAll('#import-csv-btn').forEach(btn => {
-        btn.addEventListener('click', () => document.getElementById('csv-file-input').click());
+    document.querySelectorAll('#import-csv-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() { document.getElementById('csv-file-input').click(); });
     });
-    document.querySelectorAll('#csv-file-input').forEach(input => {
+    document.querySelectorAll('#csv-file-input').forEach(function(input) {
         input.addEventListener('change', function(e) {
             if (this.files.length > 0) {
                 importCSV(this.files[0]);
@@ -2351,7 +1229,7 @@ function initImportExport() {
         });
     });
 
-    document.querySelectorAll('#template-csv-btn').forEach(btn => {
+    document.querySelectorAll('#template-csv-btn').forEach(function(btn) {
         btn.addEventListener('click', exportTemplateCSV);
     });
 }
@@ -2361,22 +1239,22 @@ document.addEventListener('DOMContentLoaded', function() {
     loadData();
     initImportExport();
 
-    const path = window.location.pathname;
-    const page = path.split('/').pop() || 'index.html';
+    var path = window.location.pathname;
+    var page = path.split('/').pop() || 'index.html';
 
     if (page === 'index.html' || page === '') {
         updateDashboard();
     } else if (page === 'characters.html') {
         renderCharacters();
 
-        document.getElementById('add-character-btn').addEventListener('click', () => showCharacterForm());
+        document.getElementById('add-character-btn').addEventListener('click', function() { showCharacterForm(); });
         document.getElementById('cancel-char-btn').addEventListener('click', hideCharacterForm);
         document.getElementById('char-form').addEventListener('submit', saveCharacter);
 
     } else if (page === 'teams.html') {
         renderTeams();
 
-        document.getElementById('add-team-btn').addEventListener('click', () => showTeamForm());
+        document.getElementById('add-team-btn').addEventListener('click', function() { showTeamForm(); });
         document.getElementById('cancel-team-btn').addEventListener('click', hideTeamForm);
         document.getElementById('team-form-inner').addEventListener('submit', saveTeam);
 
@@ -2396,7 +1274,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } else if (page === 'tournaments.html') {
         renderTournaments();
 
-        document.getElementById('add-tournament-btn').addEventListener('click', () => showTournamentForm());
+        document.getElementById('add-tournament-btn').addEventListener('click', function() { showTournamentForm(); });
         document.getElementById('cancel-tournament-btn').addEventListener('click', hideTournamentForm);
         document.getElementById('tournament-form-inner').addEventListener('submit', saveTournament);
 
@@ -2409,4 +1287,3 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setInterval(saveData, 30000);
 });
-```
