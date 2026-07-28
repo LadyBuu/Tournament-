@@ -23,6 +23,7 @@
             <button id="export-csv-btn" class="small">Export CSV</button>
             <button id="import-csv-btn" class="small">Import CSV</button>
             <button id="template-csv-btn" class="small">Template CSV</button>
+            <button id="set-year-btn" class="small primary">Set Year</button>
             <input type="file" id="json-file-input" accept=".json" style="display:none">
             <input type="file" id="csv-file-input" accept=".csv" style="display:none">
         </div>
@@ -30,11 +31,10 @@
 
     <main class="characters-page">
         <div class="page-header">
-            <h2>Character Management</h2>
+            <h2>Character Management <span style="font-size:0.8rem;color:var(--text-dim);font-weight:400;">Current Year: <span id="header-current-year">2024</span></span></h2>
             <button id="add-character-btn" class="primary">+ Add Character</button>
         </div>
 
-        <!-- Character Form -->
         <div id="character-form" class="form-container hidden">
             <h3 id="form-title">Add Character</h3>
             <form id="char-form">
@@ -60,7 +60,7 @@
                         <input type="text" id="char-gender" placeholder="Male/Female/Other">
                     </div>
                     <div class="form-group">
-                        <label>Associated Names (nicknames, aliases)</label>
+                        <label>Associated Names</label>
                         <input type="text" id="char-associated-names" placeholder="e.g., The Shadow, Nightwalker">
                     </div>
                     <div class="form-group">
@@ -91,6 +91,30 @@
                         <label>Background / Notes</label>
                         <textarea id="char-notes" rows="3" placeholder="Character background, motivations, etc."></textarea>
                     </div>
+                    
+                    <!-- Death Section -->
+                    <div class="form-group full-width" style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                            <input type="checkbox" id="char-deceased" style="width:auto;">
+                            <label for="char-deceased" style="margin:0;color:var(--danger);font-weight:600;">Mark as Deceased</label>
+                        </div>
+                        <div id="death-fields" style="display:none;padding-left:24px;border-left:2px solid var(--danger);">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Year of Death</label>
+                                    <input type="number" id="char-death-year" min="1900" max="2100" placeholder="e.g., 2023">
+                                </div>
+                                <div class="form-group">
+                                    <label>Death Age (fixed - won't change with years)</label>
+                                    <input type="number" id="char-death-age" min="0" max="150" placeholder="e.g., 45">
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>Cause of Death</label>
+                                    <input type="text" id="char-death-cause" placeholder="e.g., Battle wounds, Illness, Old age">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="form-actions">
                     <button type="button" id="cancel-char-btn" class="secondary">Cancel</button>
@@ -99,13 +123,12 @@
             </form>
         </div>
 
-        <!-- Character List -->
         <div id="character-list">
             <div class="list-header">
                 <span>Name</span>
+                <span>Age</span>
                 <span>Birth Year</span>
                 <span>Appearance</span>
-                <span>Teams</span>
                 <span>Actions</span>
             </div>
             <div id="characters-container">
