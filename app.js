@@ -1,6 +1,11 @@
 // ============================================================
-// app.js - Tournament Manager Application Logic
+// app.js - Tournament Manager with IndexedDB Storage
 // ============================================================
+
+// ---- Database Configuration ----
+var DB_NAME = 'TournamentManagerDB';
+var DB_VERSION = 1;
+var STORE_NAME = 'tournamentData';
 
 // ---- Data Store ----
 var data = {
@@ -10,88 +15,181 @@ var data = {
     activities: []
 };
 
-// ---- Data Limits ----
-var MAX_ACTIVITIES = 50; // Limit activities to prevent storage bloat
-var MAX_CHARACTERS = 1000;
-var MAX_TEAMS = 500;
-var MAX_TOURNAMENTS = 100;
+var db = null;
 
-// Load from localStorage
+// ---- Open Database ----
+function openDatabase() {
+    return new Promise(function(resolve, reject) {
+        var request = indexedDB.open(DB_NAME, DB_VERSION);
+        
+        request.onerror = function(event) {
+            console.error('Database error:', event.target.error);
+            reject(event.target.error);
+        };
+        
+        request.onsuccess = function(event) {
+            db = event.target.result;
+            console.log('Database opened successfully');
+            resolve(db);
+        };
+        
+        request.onupgradeneeded = function(event) {
+            var database = event.target.result;
+            if (!database.objectStoreNames.contains(STORE_NAME)) {
+                var store = database.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                store.createIndex('updatedAt', 'updatedAt', { unique: false });
+                console.log('Object store created');
+            }
+        };
+    });
+}
+
+// ---- Load Data from IndexedDB ----
 function loadData() {
-    try {
-        var stored = localStorage.getItem('tournament-manager-data');
-        if (stored) {
-            var parsed = JSON.parse(stored);
-            data.characters = parsed.characters || [];
-            data.teams = parsed.teams || [];
-            data.tournaments = parsed.tournaments || [];
-            data.activities = parsed.activities || [];
-            
-            // Trim excess data
-            if (data.activities.length > MAX_ACTIVITIES) {
-                data.activities = data.activities.slice(0, MAX_ACTIVITIES);
-            }
-            return true;
+    return new Promise(function(resolve, reject) {
+        if (!db) {
+            openDatabase().then(function() {
+                loadDataInternal().then(resolve).catch(reject);
+            }).catch(reject);
+            return;
         }
-    } catch (e) {
-        console.warn('Failed to load data:', e);
-    }
-    return false;
+        
+        loadDataInternal().then(resolve).catch(reject);
+    });
 }
 
-// Save to localStorage with error handling
+function loadDataInternal() {
+    return new Promise(function(resolve, reject) {
+        try {
+            var transaction = db.transaction([STORE_NAME], 'readonly');
+            var store = transaction.objectStore(STORE_NAME);
+            var request = store.get('mainData');
+            
+            request.onerror = function(event) {
+                console.error('Load error:', event.target.error);
+                reject(event.target.error);
+            };
+            
+            request.onsuccess = function(event) {
+                var result = event.target.result;
+                if (result && result.data) {
+                    data = result.data;
+                    console.log('Data loaded from IndexedDB');
+                    resolve(data);
+                } else {
+                    // No data found, use defaults
+                    data = {
+                        characters: [],
+                        teams: [],
+                        tournaments: [],
+                        activities: []
+                    };
+                    console.log('No data found, using defaults');
+                    resolve(data);
+                }
+            };
+        } catch (e) {
+            console.error('Load error:', e);
+            reject(e);
+        }
+    });
+}
+
+// ---- Save Data to IndexedDB ----
 function saveData() {
-    try {
-        // Trim data before saving to prevent quota issues
-        if (data.activities.length > MAX_ACTIVITIES) {
-            data.activities = data.activities.slice(0, MAX_ACTIVITIES);
+    return new Promise(function(resolve, reject) {
+        if (!db) {
+            openDatabase().then(function() {
+                saveDataInternal().then(resolve).catch(reject);
+            }).catch(reject);
+            return;
         }
         
-        // Check data size before saving
-        var jsonData = JSON.stringify(data);
-        var sizeInBytes = new Blob([jsonData]).size;
-        var sizeInMB = sizeInBytes / (1024 * 1024);
-        
-        // If data is too large, warn and trim more aggressively
-        if (sizeInMB > 4) {
-            console.warn('Data size is ' + sizeInMB.toFixed(2) + 'MB, trimming...');
-            // Keep only last 20 activities
-            data.activities = data.activities.slice(0, 20);
-            // Re-stringify to check new size
-            jsonData = JSON.stringify(data);
-            sizeInBytes = new Blob([jsonData]).size;
-            sizeInMB = sizeInBytes / (1024 * 1024);
-            
-            if (sizeInMB > 4.5) {
-                // If still too large, clear activities entirely
-                data.activities = [];
-                jsonData = JSON.stringify(data);
-                console.warn('Cleared activities to reduce data size');
-            }
-        }
-        
-        localStorage.setItem('tournament-manager-data', jsonData);
-    } catch (e) {
-        if (e.name === 'QuotaExceededError' || e.code === 22) {
-            console.error('Storage quota exceeded. Attempting to clean up...');
-            // Emergency cleanup - remove activities and old data
-            data.activities = [];
-            try {
-                localStorage.setItem('tournament-manager-data', JSON.stringify(data));
-                console.log('Data saved after cleanup');
-            } catch (e2) {
-                console.error('Still cannot save data. Please export and clear data manually.');
-                alert('Storage is full. Please export your data and clear localStorage to continue.');
-            }
-        } else {
-            console.warn('Failed to save data:', e);
-        }
-    }
+        saveDataInternal().then(resolve).catch(reject);
+    });
 }
 
-// ---- ID Generator ----
-function generateId() {
-    return 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+function saveDataInternal() {
+    return new Promise(function(resolve, reject) {
+        try {
+            var transaction = db.transaction([STORE_NAME], 'readwrite');
+            var store = transaction.objectStore(STORE_NAME);
+            
+            var record = {
+                id: 'mainData',
+                data: data,
+                updatedAt: new Date().toISOString()
+            };
+            
+            var request = store.put(record);
+            
+            request.onerror = function(event) {
+                console.error('Save error:', event.target.error);
+                reject(event.target.error);
+            };
+            
+            request.onsuccess = function() {
+                console.log('Data saved to IndexedDB');
+                resolve();
+            };
+            
+            transaction.oncomplete = function() {
+                console.log('Transaction completed');
+            };
+        } catch (e) {
+            console.error('Save error:', e);
+            reject(e);
+        }
+    });
+}
+
+// ---- Export Data (JSON download) ----
+function exportJSON() {
+    var jsonData = JSON.stringify(data, null, 2);
+    var blob = new Blob([jsonData], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'tournament-data-' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    logActivity('Exported data to JSON');
+}
+
+// ---- Import Data from JSON ----
+function importJSON(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            var imported = JSON.parse(e.target.result);
+            
+            if (!imported.characters || !imported.teams || !imported.tournaments) {
+                alert('Invalid data format. Missing required fields.');
+                return;
+            }
+
+            if (!confirm('This will replace all current data. Continue?')) return;
+
+            data.characters = imported.characters || [];
+            data.teams = imported.teams || [];
+            data.tournaments = imported.tournaments || [];
+            data.activities = imported.activities || [];
+            
+            saveData().then(function() {
+                logActivity('Imported data from JSON');
+                renderAll();
+                updateDashboard();
+                alert('Data imported successfully!');
+            }).catch(function(err) {
+                alert('Failed to save data: ' + err.message);
+            });
+        } catch (err) {
+            alert('Failed to import JSON: ' + err.message);
+        }
+    };
+    reader.readAsText(file);
 }
 
 // ---- Activity Logger ----
@@ -103,12 +201,19 @@ function logActivity(message, type) {
         type: type,
         timestamp: new Date().toISOString()
     });
-    // Keep only last 50 activities
-    if (data.activities.length > 50) {
-        data.activities = data.activities.slice(0, 50);
+    // Keep only last 100 activities
+    if (data.activities.length > 100) {
+        data.activities = data.activities.slice(0, 100);
     }
-    saveData();
+    saveData().catch(function(e) {
+        console.warn('Failed to save activity:', e);
+    });
     updateActivityLog();
+}
+
+// ---- ID Generator ----
+function generateId() {
+    return 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
 }
 
 // ---- Update Dashboard ----
@@ -138,357 +243,8 @@ function updateActivityLog() {
     }).join('');
 }
 
-// ============================================================
-// IMPORT / EXPORT FUNCTIONS
-// ============================================================
-
-// ---- Export JSON ----
-function exportJSON() {
-    var jsonData = JSON.stringify(data, null, 2);
-    var blob = new Blob([jsonData], { type: 'application/json' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'tournament-data-' + new Date().toISOString().slice(0,10) + '.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    logActivity('Exported data to JSON');
-}
-
-// ---- Import JSON ----
-function importJSON(file) {
-    var reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            var imported = JSON.parse(e.target.result);
-            
-            if (!imported.characters || !imported.teams || !imported.tournaments) {
-                alert('Invalid data format. Missing required fields.');
-                return;
-            }
-
-            if (!confirm('This will replace all current data. Continue?')) return;
-
-            data.characters = imported.characters || [];
-            data.teams = imported.teams || [];
-            data.tournaments = imported.tournaments || [];
-            data.activities = imported.activities || [];
-            
-            // Trim activities
-            if (data.activities.length > 50) {
-                data.activities = data.activities.slice(0, 50);
-            }
-            
-            saveData();
-            logActivity('Imported data from JSON');
-            renderAll();
-            updateDashboard();
-            alert('Data imported successfully!');
-        } catch (err) {
-            alert('Failed to import JSON: ' + err.message);
-        }
-    };
-    reader.readAsText(file);
-}
-
-// ---- Export CSV ----
-function exportCSV() {
-    var lines = [];
-
-    lines.push('# CHARACTERS');
-    lines.push('FirstName,MiddleName,LastName,BirthYear,Gender,AssociatedNames,EyeColor,HairColor,SkinColor,Height,Build,AppearanceNotes,Notes');
-    data.characters.forEach(function(c) {
-        lines.push([
-            csvField(c.firstName || ''),
-            csvField(c.middleName || ''),
-            csvField(c.lastName || ''),
-            c.birthYear || '',
-            csvField(c.gender || ''),
-            csvField(c.associatedNames || ''),
-            csvField(c.eyes || ''),
-            csvField(c.hair || ''),
-            csvField(c.skin || ''),
-            csvField(c.height || ''),
-            csvField(c.build || ''),
-            csvField(c.appearanceNotes || ''),
-            csvField(c.notes || '')
-        ].join(','));
-    });
-
-    lines.push('\n# TEAMS');
-    lines.push('TeamName,TeamType,FoundedYear,Status');
-    data.teams.forEach(function(t) {
-        lines.push(csvField(t.name) + ',' + csvField(t.type) + ',' + (t.foundedYear || '') + ',' + csvField(t.status));
-    });
-
-    lines.push('\n# TEAM MEMBERS');
-    lines.push('TeamName,CharacterFirstName,CharacterLastName,Role,JoinYear,LeaveYear');
-    data.teams.forEach(function(t) {
-        if (t.members) {
-            t.members.forEach(function(m) {
-                var char = data.characters.find(function(c) { return c.id === m.characterId; });
-                lines.push(csvField(t.name) + ',' + csvField(char ? char.firstName : '') + ',' + csvField(char ? char.lastName : '') + ',' + csvField(m.role) + ',' + (m.joinYear || '') + ',' + (m.leaveYear || ''));
-            });
-        }
-    });
-
-    lines.push('\n# TOURNAMENTS');
-    lines.push('TournamentName,AcademicYear,StartWeek,EndWeek,Status,Description');
-    data.tournaments.forEach(function(t) {
-        lines.push(csvField(t.name) + ',' + csvField(t.academicYear) + ',' + (t.startWeek || '') + ',' + (t.endWeek || '') + ',' + csvField(t.status) + ',' + csvField(t.description));
-    });
-
-    lines.push('\n# TOURNAMENT TEAMS');
-    lines.push('TournamentName,TeamName,Seed');
-    data.tournaments.forEach(function(t) {
-        if (t.teams) {
-            t.teams.forEach(function(entry) {
-                var team = data.teams.find(function(tm) { return tm.id === entry.teamId; });
-                lines.push(csvField(t.name) + ',' + csvField(team ? team.name : '') + ',' + (entry.seed || ''));
-            });
-        }
-    });
-
-    var csvContent = lines.join('\n');
-    var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'tournament-data-' + new Date().toISOString().slice(0,10) + '.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    logActivity('Exported data to CSV');
-}
-
-// ---- Import CSV ----
-function importCSV(file) {
-    var reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            if (!confirm('This will replace all current data. Continue?')) return;
-
-            var lines = e.target.result.split('\n');
-            var section = '';
-            var newData = {
-                characters: [],
-                teams: [],
-                tournaments: [],
-                activities: []
-            };
-            var charMap = {};
-            var teamMap = {};
-            var tournMap = {};
-
-            for (var i = 0; i < lines.length; i++) {
-                var line = lines[i].trim();
-                if (!line) continue;
-
-                if (line.startsWith('# CHARACTERS')) { section = 'characters'; continue; }
-                if (line.startsWith('# TEAMS')) { section = 'teams'; continue; }
-                if (line.startsWith('# TEAM MEMBERS')) { section = 'members'; continue; }
-                if (line.startsWith('# TOURNAMENTS')) { section = 'tournaments'; continue; }
-                if (line.startsWith('# TOURNAMENT TEAMS')) { section = 'tournament_teams'; continue; }
-
-                if (line.startsWith('FirstName,') || 
-                    line.startsWith('TeamName,') || 
-                    line.startsWith('TournamentName,')) continue;
-
-                var values = parseCSVLine(line);
-
-                if (section === 'characters' && values.length >= 13) {
-                    var char = {
-                        id: generateId(),
-                        firstName: values[0] || '',
-                        middleName: values[1] || '',
-                        lastName: values[2] || '',
-                        birthYear: values[3] || '',
-                        gender: values[4] || '',
-                        associatedNames: values[5] || '',
-                        eyes: values[6] || '',
-                        hair: values[7] || '',
-                        skin: values[8] || '',
-                        height: values[9] || '',
-                        build: values[10] || '',
-                        appearanceNotes: values[11] || '',
-                        notes: values[12] || '',
-                        createdAt: new Date().toISOString()
-                    };
-                    newData.characters.push(char);
-                    var key = (char.firstName + '|' + char.lastName).toLowerCase();
-                    charMap[key] = char;
-                }
-                else if (section === 'teams' && values.length >= 4) {
-                    var team = {
-                        id: generateId(),
-                        name: values[0] || '',
-                        type: values[1] || '',
-                        foundedYear: values[2] || '',
-                        status: values[3] || 'active',
-                        members: [],
-                        createdAt: new Date().toISOString()
-                    };
-                    newData.teams.push(team);
-                    teamMap[team.name.toLowerCase()] = team;
-                }
-                else if (section === 'members' && values.length >= 6) {
-                    var teamName = values[0];
-                    var charFirstName = values[1];
-                    var charLastName = values[2];
-                    var team = teamMap[teamName.toLowerCase()];
-                    if (team) {
-                        var key = (charFirstName + '|' + charLastName).toLowerCase();
-                        var char = charMap[key];
-                        if (char) {
-                            team.members.push({
-                                characterId: char.id,
-                                role: values[3] || 'Member',
-                                joinYear: values[4] || '',
-                                leaveYear: values[5] || ''
-                            });
-                        }
-                    }
-                }
-                else if (section === 'tournaments' && values.length >= 6) {
-                    var tourn = {
-                        id: generateId(),
-                        name: values[0] || '',
-                        academicYear: values[1] || '',
-                        startWeek: values[2] || '',
-                        endWeek: values[3] || '',
-                        status: values[4] || 'draft',
-                        description: values[5] || '',
-                        teams: [],
-                        bracket: [],
-                        createdAt: new Date().toISOString()
-                    };
-                    newData.tournaments.push(tourn);
-                    tournMap[tourn.name.toLowerCase()] = tourn;
-                }
-                else if (section === 'tournament_teams' && values.length >= 3) {
-                    var tournName = values[0];
-                    var teamName = values[1];
-                    var tourn = tournMap[tournName.toLowerCase()];
-                    var team = teamMap[teamName.toLowerCase()];
-                    if (tourn && team) {
-                        tourn.teams.push({
-                            teamId: team.id,
-                            seed: parseInt(values[2]) || tourn.teams.length + 1
-                        });
-                    }
-                }
-            }
-
-            if (newData.characters.length === 0 && newData.teams.length === 0 && newData.tournaments.length === 0) {
-                alert('No valid data found in CSV file.');
-                return;
-            }
-
-            data.characters = newData.characters;
-            data.teams = newData.teams;
-            data.tournaments = newData.tournaments;
-            data.activities = newData.activities;
-            saveData();
-            logActivity('Imported data from CSV');
-            renderAll();
-            updateDashboard();
-            alert('Imported successfully!\nCharacters: ' + data.characters.length + '\nTeams: ' + data.teams.length + '\nTournaments: ' + data.tournaments.length);
-        } catch (err) {
-            alert('Failed to import CSV: ' + err.message);
-        }
-    };
-    reader.readAsText(file);
-}
-
-// ---- Export Template CSV ----
-function exportTemplateCSV() {
-    var lines = [
-        '# CHARACTERS',
-        'FirstName,MiddleName,LastName,BirthYear,Gender,AssociatedNames,EyeColor,HairColor,SkinColor,Height,Build,AppearanceNotes,Notes',
-        'John,,Doe,1990,Male,,Blue,Brown,Fair,5\'10",Athletic,,Example character',
-        'Jane,Mary,Smith,1992,Female,The Shadow,Green,Black,Olive,5\'7",Slim,Scar on cheek,',
-        '',
-        '# TEAMS',
-        'TeamName,TeamType,FoundedYear,Status',
-        'Example Team,academic,2020,active',
-        'Another Team,professional,2018,active',
-        '',
-        '# TEAM MEMBERS',
-        'TeamName,CharacterFirstName,CharacterLastName,Role,JoinYear,LeaveYear',
-        'Example Team,John,Doe,Captain,2020,',
-        'Example Team,Jane,Smith,Member,2021,2023',
-        '',
-        '# TOURNAMENTS',
-        'TournamentName,AcademicYear,StartWeek,EndWeek,Status,Description',
-        'Spring Cup,2025-2026,1,12,active,Annual spring tournament',
-        '',
-        '# TOURNAMENT TEAMS',
-        'TournamentName,TeamName,Seed',
-        'Spring Cup,Example Team,1',
-        'Spring Cup,Another Team,2'
-    ];
-
-    var csvContent = lines.join('\n');
-    var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'tournament-template.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    logActivity('Exported template CSV');
-}
-
-// ---- CSV Helper Functions ----
-function csvField(value) {
-    if (value === null || value === undefined) return '';
-    var str = String(value);
-    if (str.indexOf(',') !== -1 || str.indexOf('"') !== -1 || str.indexOf('\n') !== -1) {
-        return '"' + str.replace(/"/g, '""') + '"';
-    }
-    return str;
-}
-
-function parseCSVLine(line) {
-    var values = [];
-    var current = '';
-    var inQuotes = false;
-    
-    for (var i = 0; i < line.length; i++) {
-        var char = line[i];
-        if (inQuotes) {
-            if (char === '"' && line[i+1] === '"') {
-                current += '"';
-                i++;
-            } else if (char === '"') {
-                inQuotes = false;
-            } else {
-                current += char;
-            }
-        } else {
-            if (char === '"') {
-                inQuotes = true;
-            } else if (char === ',') {
-                values.push(current.trim());
-                current = '';
-            } else {
-                current += char;
-            }
-        }
-    }
-    values.push(current.trim());
-    return values;
-}
-
 // ---- Render All ----
 function renderAll() {
-    loadData();
-    
     var path = window.location.pathname;
     var page = path.split('/').pop() || 'index.html';
     
@@ -503,12 +259,13 @@ function renderAll() {
     }
 }
 
-// ---- Character Management ----
+// ============================================================
+// CHARACTER MANAGEMENT
+// ============================================================
+
 function renderCharacters() {
     var container = document.getElementById('characters-container');
     if (!container) return;
-
-    loadData();
 
     if (data.characters.length === 0) {
         container.innerHTML = '<p class="empty-state">No characters created yet. Add your first character!</p>';
@@ -644,7 +401,11 @@ function saveCharacter(e) {
         logActivity('Added character: ' + charData.firstName);
     }
 
-    saveData();
+    saveData().catch(function(err) {
+        console.error('Failed to save:', err);
+        alert('Failed to save character. Please check console for details.');
+    });
+    
     renderCharacters();
     updateDashboard();
     hideCharacterForm();
@@ -668,19 +429,22 @@ function deleteCharacter(id) {
 
     data.characters = data.characters.filter(function(c) { return c.id !== id; });
     logActivity('Deleted character: ' + char.firstName);
-    saveData();
+    saveData().catch(function(err) {
+        console.error('Failed to save:', err);
+    });
     renderCharacters();
     updateDashboard();
 }
 
-// ---- Team Management ----
+// ============================================================
+// TEAM MANAGEMENT
+// ============================================================
+
 var currentEditMember = null;
 
 function renderTeams() {
     var container = document.getElementById('teams-container');
     if (!container) return;
-
-    loadData();
 
     if (data.teams.length === 0) {
         container.innerHTML = '<p class="empty-state">No teams created yet. Add your first team!</p>';
@@ -786,7 +550,11 @@ function saveTeam(e) {
         logActivity('Added team: ' + teamData.name);
     }
 
-    saveData();
+    saveData().catch(function(err) {
+        console.error('Failed to save:', err);
+        alert('Failed to save team. Please check console for details.');
+    });
+    
     renderTeams();
     updateDashboard();
     hideTeamForm();
@@ -810,13 +578,15 @@ function deleteTeam(id) {
 
     data.teams = data.teams.filter(function(t) { return t.id !== id; });
     logActivity('Deleted team: ' + team.name);
-    saveData();
+    saveData().catch(function(err) {
+        console.error('Failed to save:', err);
+    });
     renderTeams();
     updateDashboard();
     closeMemberModal();
 }
 
-// ---- Member Management Modal ----
+// ---- Member Management ----
 var currentTeamId = null;
 
 function openMemberModal(teamId) {
@@ -913,7 +683,11 @@ function addMember() {
 
     var char = data.characters.find(function(c) { return c.id === charId; });
     logActivity('Added ' + (char ? char.firstName : 'character') + ' to team: ' + team.name);
-    saveData();
+    
+    saveData().catch(function(err) {
+        console.error('Failed to save:', err);
+    });
+    
     renderMembers(team);
     renderTeams();
     updateDashboard();
@@ -932,13 +706,16 @@ function removeMember(teamId, charId) {
     team.members = team.members.filter(function(m) { return m.characterId !== charId; });
     var char = data.characters.find(function(c) { return c.id === charId; });
     logActivity('Removed ' + (char ? char.firstName : 'character') + ' from team: ' + team.name);
-    saveData();
+    
+    saveData().catch(function(err) {
+        console.error('Failed to save:', err);
+    });
+    
     renderMembers(team);
     renderTeams();
     updateDashboard();
 }
 
-// ---- Edit Member Modal ----
 function openEditMemberModal(teamId, index) {
     var team = data.teams.find(function(t) { return t.id === teamId; });
     if (!team || !team.members || !team.members[index]) return;
@@ -981,18 +758,23 @@ function saveEditMember(e) {
 
     var char = data.characters.find(function(c) { return c.id === team.members[index].characterId; });
     logActivity('Updated member ' + (char ? char.firstName : '') + ' in team: ' + team.name);
-    saveData();
+    
+    saveData().catch(function(err) {
+        console.error('Failed to save:', err);
+    });
+    
     renderMembers(team);
     renderTeams();
     closeEditMemberModal();
 }
 
-// ---- Tournament Management ----
+// ============================================================
+// TOURNAMENT MANAGEMENT
+// ============================================================
+
 function renderTournaments() {
     var container = document.getElementById('tournaments-container');
     if (!container) return;
-
-    loadData();
 
     if (data.tournaments.length === 0) {
         container.innerHTML = '<p class="empty-state">No tournaments created yet. Create your first tournament!</p>';
@@ -1103,7 +885,11 @@ function saveTournament(e) {
         logActivity('Created tournament: ' + tournData.name);
     }
 
-    saveData();
+    saveData().catch(function(err) {
+        console.error('Failed to save:', err);
+        alert('Failed to save tournament. Please check console for details.');
+    });
+    
     renderTournaments();
     updateDashboard();
     hideTournamentForm();
@@ -1121,13 +907,16 @@ function deleteTournament(id) {
 
     data.tournaments = data.tournaments.filter(function(t) { return t.id !== id; });
     logActivity('Deleted tournament: ' + tourn.name);
-    saveData();
+    
+    saveData().catch(function(err) {
+        console.error('Failed to save:', err);
+    });
+    
     renderTournaments();
     updateDashboard();
     closeTournamentDetail();
 }
 
-// ---- Tournament Detail View ----
 function viewTournament(id) {
     var tourn = data.tournaments.find(function(t) { return t.id === id; });
     if (!tourn) return;
@@ -1212,7 +1001,11 @@ function addTeamToTournament() {
 
     var team = data.teams.find(function(t) { return t.id === teamId; });
     logActivity('Added team ' + (team ? team.name : '') + ' to tournament: ' + tourn.name);
-    saveData();
+    
+    saveData().catch(function(err) {
+        console.error('Failed to save:', err);
+    });
+    
     viewTournament(tournId);
 }
 
@@ -1225,7 +1018,11 @@ function removeTeamFromTournament(tournId, teamId) {
     tourn.teams = tourn.teams.filter(function(t) { return t.teamId !== teamId; });
     var team = data.teams.find(function(t) { return t.id === teamId; });
     logActivity('Removed team ' + (team ? team.name : '') + ' from tournament: ' + tourn.name);
-    saveData();
+    
+    saveData().catch(function(err) {
+        console.error('Failed to save:', err);
+    });
+    
     viewTournament(tournId);
 }
 
@@ -1274,7 +1071,303 @@ function renderBracket(tourn) {
     container.innerHTML = html;
 }
 
-// ---- Initialize Import/Export Buttons ----
+// ============================================================
+// CSV EXPORT/IMPORT (same as before)
+// ============================================================
+
+function exportCSV() {
+    var lines = [];
+
+    lines.push('# CHARACTERS');
+    lines.push('FirstName,MiddleName,LastName,BirthYear,Gender,AssociatedNames,EyeColor,HairColor,SkinColor,Height,Build,AppearanceNotes,Notes');
+    data.characters.forEach(function(c) {
+        lines.push([
+            csvField(c.firstName || ''),
+            csvField(c.middleName || ''),
+            csvField(c.lastName || ''),
+            c.birthYear || '',
+            csvField(c.gender || ''),
+            csvField(c.associatedNames || ''),
+            csvField(c.eyes || ''),
+            csvField(c.hair || ''),
+            csvField(c.skin || ''),
+            csvField(c.height || ''),
+            csvField(c.build || ''),
+            csvField(c.appearanceNotes || ''),
+            csvField(c.notes || '')
+        ].join(','));
+    });
+
+    lines.push('\n# TEAMS');
+    lines.push('TeamName,TeamType,FoundedYear,Status');
+    data.teams.forEach(function(t) {
+        lines.push(csvField(t.name) + ',' + csvField(t.type) + ',' + (t.foundedYear || '') + ',' + csvField(t.status));
+    });
+
+    lines.push('\n# TEAM MEMBERS');
+    lines.push('TeamName,CharacterFirstName,CharacterLastName,Role,JoinYear,LeaveYear');
+    data.teams.forEach(function(t) {
+        if (t.members) {
+            t.members.forEach(function(m) {
+                var char = data.characters.find(function(c) { return c.id === m.characterId; });
+                lines.push(csvField(t.name) + ',' + csvField(char ? char.firstName : '') + ',' + csvField(char ? char.lastName : '') + ',' + csvField(m.role) + ',' + (m.joinYear || '') + ',' + (m.leaveYear || ''));
+            });
+        }
+    });
+
+    lines.push('\n# TOURNAMENTS');
+    lines.push('TournamentName,AcademicYear,StartWeek,EndWeek,Status,Description');
+    data.tournaments.forEach(function(t) {
+        lines.push(csvField(t.name) + ',' + csvField(t.academicYear) + ',' + (t.startWeek || '') + ',' + (t.endWeek || '') + ',' + csvField(t.status) + ',' + csvField(t.description));
+    });
+
+    lines.push('\n# TOURNAMENT TEAMS');
+    lines.push('TournamentName,TeamName,Seed');
+    data.tournaments.forEach(function(t) {
+        if (t.teams) {
+            t.teams.forEach(function(entry) {
+                var team = data.teams.find(function(tm) { return tm.id === entry.teamId; });
+                lines.push(csvField(t.name) + ',' + csvField(team ? team.name : '') + ',' + (entry.seed || ''));
+            });
+        }
+    });
+
+    var csvContent = lines.join('\n');
+    var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'tournament-data-' + new Date().toISOString().slice(0,10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    logActivity('Exported data to CSV');
+}
+
+function importCSV(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            if (!confirm('This will replace all current data. Continue?')) return;
+
+            var lines = e.target.result.split('\n');
+            var section = '';
+            var newData = {
+                characters: [],
+                teams: [],
+                tournaments: [],
+                activities: []
+            };
+            var charMap = {};
+            var teamMap = {};
+            var tournMap = {};
+
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].trim();
+                if (!line) continue;
+
+                if (line.startsWith('# CHARACTERS')) { section = 'characters'; continue; }
+                if (line.startsWith('# TEAMS')) { section = 'teams'; continue; }
+                if (line.startsWith('# TEAM MEMBERS')) { section = 'members'; continue; }
+                if (line.startsWith('# TOURNAMENTS')) { section = 'tournaments'; continue; }
+                if (line.startsWith('# TOURNAMENT TEAMS')) { section = 'tournament_teams'; continue; }
+
+                if (line.startsWith('FirstName,') || 
+                    line.startsWith('TeamName,') || 
+                    line.startsWith('TournamentName,')) continue;
+
+                var values = parseCSVLine(line);
+
+                if (section === 'characters' && values.length >= 13) {
+                    var char = {
+                        id: generateId(),
+                        firstName: values[0] || '',
+                        middleName: values[1] || '',
+                        lastName: values[2] || '',
+                        birthYear: values[3] || '',
+                        gender: values[4] || '',
+                        associatedNames: values[5] || '',
+                        eyes: values[6] || '',
+                        hair: values[7] || '',
+                        skin: values[8] || '',
+                        height: values[9] || '',
+                        build: values[10] || '',
+                        appearanceNotes: values[11] || '',
+                        notes: values[12] || '',
+                        createdAt: new Date().toISOString()
+                    };
+                    newData.characters.push(char);
+                    var key = (char.firstName + '|' + char.lastName).toLowerCase();
+                    charMap[key] = char;
+                }
+                else if (section === 'teams' && values.length >= 4) {
+                    var team = {
+                        id: generateId(),
+                        name: values[0] || '',
+                        type: values[1] || '',
+                        foundedYear: values[2] || '',
+                        status: values[3] || 'active',
+                        members: [],
+                        createdAt: new Date().toISOString()
+                    };
+                    newData.teams.push(team);
+                    teamMap[team.name.toLowerCase()] = team;
+                }
+                else if (section === 'members' && values.length >= 6) {
+                    var teamName = values[0];
+                    var charFirstName = values[1];
+                    var charLastName = values[2];
+                    var team = teamMap[teamName.toLowerCase()];
+                    if (team) {
+                        var key = (charFirstName + '|' + charLastName).toLowerCase();
+                        var char = charMap[key];
+                        if (char) {
+                            team.members.push({
+                                characterId: char.id,
+                                role: values[3] || 'Member',
+                                joinYear: values[4] || '',
+                                leaveYear: values[5] || ''
+                            });
+                        }
+                    }
+                }
+                else if (section === 'tournaments' && values.length >= 6) {
+                    var tourn = {
+                        id: generateId(),
+                        name: values[0] || '',
+                        academicYear: values[1] || '',
+                        startWeek: values[2] || '',
+                        endWeek: values[3] || '',
+                        status: values[4] || 'draft',
+                        description: values[5] || '',
+                        teams: [],
+                        bracket: [],
+                        createdAt: new Date().toISOString()
+                    };
+                    newData.tournaments.push(tourn);
+                    tournMap[tourn.name.toLowerCase()] = tourn;
+                }
+                else if (section === 'tournament_teams' && values.length >= 3) {
+                    var tournName = values[0];
+                    var teamName = values[1];
+                    var tourn = tournMap[tournName.toLowerCase()];
+                    var team = teamMap[teamName.toLowerCase()];
+                    if (tourn && team) {
+                        tourn.teams.push({
+                            teamId: team.id,
+                            seed: parseInt(values[2]) || tourn.teams.length + 1
+                        });
+                    }
+                }
+            }
+
+            if (newData.characters.length === 0 && newData.teams.length === 0 && newData.tournaments.length === 0) {
+                alert('No valid data found in CSV file.');
+                return;
+            }
+
+            data.characters = newData.characters;
+            data.teams = newData.teams;
+            data.tournaments = newData.tournaments;
+            data.activities = newData.activities;
+            
+            saveData().then(function() {
+                logActivity('Imported data from CSV');
+                renderAll();
+                updateDashboard();
+                alert('Imported successfully!\nCharacters: ' + data.characters.length + '\nTeams: ' + data.teams.length + '\nTournaments: ' + data.tournaments.length);
+            }).catch(function(err) {
+                alert('Failed to save data: ' + err.message);
+            });
+        } catch (err) {
+            alert('Failed to import CSV: ' + err.message);
+        }
+    };
+    reader.readAsText(file);
+}
+
+function exportTemplateCSV() {
+    var lines = [
+        '# CHARACTERS',
+        'FirstName,MiddleName,LastName,BirthYear,Gender,AssociatedNames,EyeColor,HairColor,SkinColor,Height,Build,AppearanceNotes,Notes',
+        'John,,Doe,1990,Male,,Blue,Brown,Fair,5\'10",Athletic,,Example character',
+        'Jane,Mary,Smith,1992,Female,The Shadow,Green,Black,Olive,5\'7",Slim,Scar on cheek,',
+        '',
+        '# TEAMS',
+        'TeamName,TeamType,FoundedYear,Status',
+        'Example Team,academic,2020,active',
+        'Another Team,professional,2018,active',
+        '',
+        '# TEAM MEMBERS',
+        'TeamName,CharacterFirstName,CharacterLastName,Role,JoinYear,LeaveYear',
+        'Example Team,John,Doe,Captain,2020,',
+        'Example Team,Jane,Smith,Member,2021,2023',
+        '',
+        '# TOURNAMENTS',
+        'TournamentName,AcademicYear,StartWeek,EndWeek,Status,Description',
+        'Spring Cup,2025-2026,1,12,active,Annual spring tournament',
+        '',
+        '# TOURNAMENT TEAMS',
+        'TournamentName,TeamName,Seed',
+        'Spring Cup,Example Team,1',
+        'Spring Cup,Another Team,2'
+    ];
+
+    var csvContent = lines.join('\n');
+    var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'tournament-template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    logActivity('Exported template CSV');
+}
+
+function csvField(value) {
+    if (value === null || value === undefined) return '';
+    var str = String(value);
+    if (str.indexOf(',') !== -1 || str.indexOf('"') !== -1 || str.indexOf('\n') !== -1) {
+        return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+}
+
+function parseCSVLine(line) {
+    var values = [];
+    var current = '';
+    var inQuotes = false;
+    
+    for (var i = 0; i < line.length; i++) {
+        var char = line[i];
+        if (inQuotes) {
+            if (char === '"' && line[i+1] === '"') {
+                current += '"';
+                i++;
+            } else if (char === '"') {
+                inQuotes = false;
+            } else {
+                current += char;
+            }
+        } else {
+            if (char === '"') {
+                inQuotes = true;
+            } else if (char === ',') {
+                values.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+    }
+    values.push(current.trim());
+    return values;
+}
+
+// ---- Import/Export Button Setup ----
 function initImportExport() {
     document.querySelectorAll('#export-json-btn').forEach(function(btn) {
         btn.addEventListener('click', exportJSON);
@@ -1313,75 +1406,68 @@ function initImportExport() {
     });
 }
 
-// ---- Clear Storage Helper (for debugging) ----
-function clearStorage() {
-    if (confirm('This will delete ALL data. Continue?')) {
-        localStorage.removeItem('tournament-manager-data');
-        data = { characters: [], teams: [], tournaments: [], activities: [] };
-        saveData();
-        location.reload();
-    }
-}
-
 // ---- Initialize ----
 document.addEventListener('DOMContentLoaded', function() {
-    loadData();
-    initImportExport();
+    // Open database and load data
+    openDatabase().then(function() {
+        return loadData();
+    }).then(function() {
+        initImportExport();
 
-    var path = window.location.pathname;
-    var page = path.split('/').pop() || 'index.html';
+        var path = window.location.pathname;
+        var page = path.split('/').pop() || 'index.html';
 
-    if (page === 'index.html' || page === '') {
-        updateDashboard();
-    } else if (page === 'characters.html') {
-        renderCharacters();
+        if (page === 'index.html' || page === '') {
+            updateDashboard();
+        } else if (page === 'characters.html') {
+            renderCharacters();
 
-        document.getElementById('add-character-btn').addEventListener('click', function() { showCharacterForm(); });
-        document.getElementById('cancel-char-btn').addEventListener('click', hideCharacterForm);
-        document.getElementById('char-form').addEventListener('submit', saveCharacter);
+            document.getElementById('add-character-btn').addEventListener('click', function() { showCharacterForm(); });
+            document.getElementById('cancel-char-btn').addEventListener('click', hideCharacterForm);
+            document.getElementById('char-form').addEventListener('submit', saveCharacter);
 
-    } else if (page === 'teams.html') {
-        renderTeams();
+        } else if (page === 'teams.html') {
+            renderTeams();
 
-        document.getElementById('add-team-btn').addEventListener('click', function() { showTeamForm(); });
-        document.getElementById('cancel-team-btn').addEventListener('click', hideTeamForm);
-        document.getElementById('team-form-inner').addEventListener('submit', saveTeam);
+            document.getElementById('add-team-btn').addEventListener('click', function() { showTeamForm(); });
+            document.getElementById('cancel-team-btn').addEventListener('click', hideTeamForm);
+            document.getElementById('team-form-inner').addEventListener('submit', saveTeam);
 
-        document.querySelector('#member-modal .close-modal').addEventListener('click', closeMemberModal);
-        document.getElementById('member-modal').addEventListener('click', function(e) {
-            if (e.target === this) closeMemberModal();
-        });
-        document.getElementById('add-member-btn').addEventListener('click', addMember);
+            document.querySelector('#member-modal .close-modal').addEventListener('click', closeMemberModal);
+            document.getElementById('member-modal').addEventListener('click', function(e) {
+                if (e.target === this) closeMemberModal();
+            });
+            document.getElementById('add-member-btn').addEventListener('click', addMember);
 
-        document.querySelector('#edit-member-modal .close-modal').addEventListener('click', closeEditMemberModal);
-        document.getElementById('edit-member-modal').addEventListener('click', function(e) {
-            if (e.target === this) closeEditMemberModal();
-        });
-        document.getElementById('cancel-edit-member').addEventListener('click', closeEditMemberModal);
-        document.getElementById('edit-member-form').addEventListener('submit', saveEditMember);
+            document.querySelector('#edit-member-modal .close-modal').addEventListener('click', closeEditMemberModal);
+            document.getElementById('edit-member-modal').addEventListener('click', function(e) {
+                if (e.target === this) closeEditMemberModal();
+            });
+            document.getElementById('cancel-edit-member').addEventListener('click', closeEditMemberModal);
+            document.getElementById('edit-member-form').addEventListener('submit', saveEditMember);
 
-    } else if (page === 'tournaments.html') {
-        renderTournaments();
+        } else if (page === 'tournaments.html') {
+            renderTournaments();
 
-        document.getElementById('add-tournament-btn').addEventListener('click', function() { showTournamentForm(); });
-        document.getElementById('cancel-tournament-btn').addEventListener('click', hideTournamentForm);
-        document.getElementById('tournament-form-inner').addEventListener('submit', saveTournament);
+            document.getElementById('add-tournament-btn').addEventListener('click', function() { showTournamentForm(); });
+            document.getElementById('cancel-tournament-btn').addEventListener('click', hideTournamentForm);
+            document.getElementById('tournament-form-inner').addEventListener('submit', saveTournament);
 
-        document.querySelector('#tournament-detail-modal .close-modal').addEventListener('click', closeTournamentDetail);
-        document.getElementById('tournament-detail-modal').addEventListener('click', function(e) {
-            if (e.target === this) closeTournamentDetail();
-        });
-        document.getElementById('add-team-to-tournament').addEventListener('click', addTeamToTournament);
-    }
-
-    // Save data periodically
-    setInterval(saveData, 60000);
+            document.querySelector('#tournament-detail-modal .close-modal').addEventListener('click', closeTournamentDetail);
+            document.getElementById('tournament-detail-modal').addEventListener('click', function(e) {
+                if (e.target === this) closeTournamentDetail();
+            });
+            document.getElementById('add-team-to-tournament').addEventListener('click', addTeamToTournament);
+        }
+    }).catch(function(err) {
+        console.error('Failed to initialize database:', err);
+        alert('Failed to open database. Please check console for details.');
+    });
 });
 
 // Save on page unload
 window.addEventListener('beforeunload', function() {
-    saveData();
+    saveData().catch(function(err) {
+        console.warn('Failed to save on unload:', err);
+    });
 });
-
-// Expose clearStorage for debugging
-window.clearStorage = clearStorage;
