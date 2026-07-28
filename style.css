@@ -394,6 +394,46 @@ main {
   border-radius: var(--radius);
 }
 
+/* ---- Deceased Character Styling ---- */
+.list-item.deceased {
+  opacity: 0.55;
+  background: var(--panel-alt);
+  border-left: 3px solid var(--danger);
+}
+
+.list-item.deceased:hover {
+  opacity: 0.75;
+}
+
+.deceased-badge {
+  color: var(--danger);
+  font-size: 0.7rem;
+  margin-left: 6px;
+  font-weight: 600;
+}
+
+/* ---- Death Fields ---- */
+#death-fields {
+  background: var(--bg);
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+#death-fields .form-group label {
+  color: var(--danger);
+}
+
+/* ---- Year Selector ---- */
+#current-year-display {
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+#current-year-display:hover {
+  color: var(--accent);
+}
+
 /* ---- Modal ---- */
 .modal {
   position: fixed;
@@ -523,7 +563,7 @@ main {
   gap: 4px;
 }
 
-/* ---- Tournament bracket ---- */
+/* ---- Tournament Bracket ---- */
 #bracket-container {
   display: flex;
   gap: 40px;
@@ -567,7 +607,7 @@ main {
   font-weight: 600;
 }
 
-/* ---- Team Selection in Tournament ---- */
+/* ---- Tournament Team Selection ---- */
 .team-selection {
   margin: 16px 0;
   padding: 12px;
@@ -676,56 +716,4 @@ main {
   .bracket-round {
     min-width: 120px;
   }
-
-/* Deceased character styling */
-.list-item.deceased {
-    opacity: 0.55;
-    background: var(--panel-alt);
-    border-left: 3px solid var(--danger);
-}
-
-.list-item.deceased:hover {
-    opacity: 0.75;
-}
-
-.deceased-badge {
-    color: var(--danger);
-    font-size: 0.7rem;
-    margin-left: 6px;
-    font-weight: 600;
-}
-
-/* Death fields styling */
-#death-fields {
-    background: var(--bg);
-    padding: 12px 16px;
-    border-radius: 6px;
-    margin-top: 4px;
-}
-
-#death-fields .form-group label {
-    color: var(--danger);
-}
-
-/* Year selector on dashboard */
-#current-year-display {
-    cursor: pointer;
-    transition: color 0.2s;
-}
-
-#current-year-display:hover {
-    color: var(--accent);
-}
-
-/* Character age column */
-.list-header span:nth-child(2),
-.list-item > span:nth-child(2) {
-    min-width: 60px;
-}
-
-/* Stats grid adjustment */
-.stat-card:last-child {
-    cursor: default;
-}
-
 }
