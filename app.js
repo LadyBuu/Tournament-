@@ -4,7 +4,7 @@
 
 // ---- Database Configuration ----
 var DB_NAME = 'TournamentManagerDB';
-var DB_VERSION = 1;
+var DB_VERSION = 2; // Incremented version for new data structure
 var STORE_NAME = 'tournamentData';
 
 // ---- Data Store ----
@@ -12,7 +12,8 @@ var data = {
     characters: [],
     teams: [],
     tournaments: [],
-    activities: []
+    activities: [],
+    currentYear: new Date().getFullYear() // Default to current year
 };
 
 var db = null;
@@ -74,6 +75,17 @@ function loadDataInternal() {
                 var result = event.target.result;
                 if (result && result.data) {
                     data = result.data;
+                    // Ensure currentYear exists
+                    if (!data.currentYear) {
+                        data.currentYear = new Date().getFullYear();
+                    }
+                    // Ensure death fields exist on characters
+                    data.characters.forEach(function(char) {
+                        if (char.deceased === undefined) char.deceased = false;
+                        if (char.deathYear === undefined) char.deathYear = '';
+                        if (char.deathCause === undefined) char.deathCause = '';
+                        if (char.deathAge === undefined) char.deathAge = '';
+                    });
                     console.log('Data loaded from IndexedDB');
                     resolve(data);
                 } else {
@@ -82,7 +94,8 @@ function loadDataInternal() {
                         characters: [],
                         teams: [],
                         tournaments: [],
-                        activities: []
+                        activities: [],
+                        currentYear: new Date().getFullYear()
                     };
                     console.log('No data found, using defaults');
                     resolve(data);
@@ -143,53 +156,9 @@ function saveDataInternal() {
     });
 }
 
-// ---- Export Data (JSON download) ----
-function exportJSON() {
-    var jsonData = JSON.stringify(data, null, 2);
-    var blob = new Blob([jsonData], { type: 'application/json' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'tournament-data-' + new Date().toISOString().slice(0,10) + '.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    logActivity('Exported data to JSON');
-}
-
-// ---- Import Data from JSON ----
-function importJSON(file) {
-    var reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            var imported = JSON.parse(e.target.result);
-            
-            if (!imported.characters || !imported.teams || !imported.tournaments) {
-                alert('Invalid data format. Missing required fields.');
-                return;
-            }
-
-            if (!confirm('This will replace all current data. Continue?')) return;
-
-            data.characters = imported.characters || [];
-            data.teams = imported.teams || [];
-            data.tournaments = imported.tournaments || [];
-            data.activities = imported.activities || [];
-            
-            saveData().then(function() {
-                logActivity('Imported data from JSON');
-                renderAll();
-                updateDashboard();
-                alert('Data imported successfully!');
-            }).catch(function(err) {
-                alert('Failed to save data: ' + err.message);
-            });
-        } catch (err) {
-            alert('Failed to import JSON: ' + err.message);
-        }
-    };
-    reader.readAsText(file);
+// ---- ID Generator ----
+function generateId() {
+    return 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
 }
 
 // ---- Activity Logger ----
@@ -201,7 +170,6 @@ function logActivity(message, type) {
         type: type,
         timestamp: new Date().toISOString()
     });
-    // Keep only last 100 activities
     if (data.activities.length > 100) {
         data.activities = data.activities.slice(0, 100);
     }
@@ -209,11 +177,6 @@ function logActivity(message, type) {
         console.warn('Failed to save activity:', e);
     });
     updateActivityLog();
-}
-
-// ---- ID Generator ----
-function generateId() {
-    return 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
 }
 
 // ---- Update Dashboard ----
@@ -272,15 +235,34 @@ function renderCharacters() {
         return;
     }
 
+    // Sort characters: dead at bottom, then alphabetical by first name
+    var sortedChars = data.characters.slice().sort(function(a, b) {
+        // Dead characters go to bottom
+        if (a.deceased && !b.deceased) return 1;
+        if (!a.deceased && b.deceased) return -1;
+        // Then alphabetical by first name
+        return (a.firstName || '').toLowerCase().localeCompare((b.firstName || '').toLowerCase());
+    });
+
     var html = '';
-    data.characters.forEach(function(char) {
+    sortedChars.forEach(function(char) {
         var fullName = [char.firstName, char.middleName, char.lastName].filter(function(n) { return n; }).join(' ');
         var appearance = [char.eyes, char.hair, char.skin].filter(function(n) { return n; }).join(', ');
-        html += '<div class="list-item" data-id="' + char.id + '">' +
-            '<span><strong>' + fullName + '</strong></span>' +
+        
+        // Calculate age
+        var age = calculateAge(char);
+        var ageDisplay = age !== null ? age + ' yrs' : '-';
+        
+        // Check if deceased
+        var isDead = char.deceased || false;
+        var deadClass = isDead ? ' deceased' : '';
+        var deadBadge = isDead ? ' <span class="deceased-badge">💀 Deceased</span>' : '';
+        
+        html += '<div class="list-item' + deadClass + '" data-id="' + char.id + '">' +
+            '<span><strong>' + fullName + '</strong>' + deadBadge + '</span>' +
+            '<span>' + ageDisplay + '</span>' +
             '<span>' + (char.birthYear || '-') + '</span>' +
             '<span>' + (appearance || '-') + '</span>' +
-            '<span>' + getCharacterTeamCount(char.id) + '</span>' +
             '<span class="actions">' +
                 '<button class="small edit-character" data-id="' + char.id + '">✎</button>' +
                 '<button class="small danger delete-character" data-id="' + char.id + '">✕</button>' +
@@ -297,16 +279,52 @@ function renderCharacters() {
     });
 }
 
-function getCharacterTeamCount(charId) {
-    var count = 0;
-    data.teams.forEach(function(team) {
-        if (team.members && team.members.some(function(m) { return m.characterId === charId; })) {
-            count++;
+function calculateAge(char) {
+    if (!char.birthYear) return null;
+    var birthYear = parseInt(char.birthYear);
+    if (isNaN(birthYear)) return null;
+    
+    // If dead, use death age (fixed)
+    if (char.deceased && char.deathAge) {
+        return parseInt(char.deathAge);
+    }
+    
+    // If dead but no death age stored, calculate from death year
+    if (char.deceased && char.deathYear) {
+        var deathYear = parseInt(char.deathYear);
+        if (!isNaN(deathYear)) {
+            var age = deathYear - birthYear;
+            return age;
         }
-    });
-    return count || '-';
+        return null;
+    }
+    
+    // Alive - calculate from current year
+    var currentYear = data.currentYear || new Date().getFullYear();
+    var age = currentYear - birthYear;
+    return age;
 }
 
+function setCurrentYear(year) {
+    data.currentYear = parseInt(year);
+    if (isNaN(data.currentYear)) {
+        data.currentYear = new Date().getFullYear();
+    }
+    saveData().then(function() {
+        logActivity('Set current year to ' + data.currentYear);
+        renderAll();
+        updateDashboard();
+    }).catch(function(err) {
+        console.error('Failed to save year:', err);
+    });
+}
+
+function getCharacterAge(char) {
+    var age = calculateAge(char);
+    return age !== null ? age : '-';
+}
+
+// ---- Character Form (updated with death fields) ----
 function showCharacterForm(editId) {
     if (editId === undefined) editId = null;
     var form = document.getElementById('character-form');
@@ -314,6 +332,17 @@ function showCharacterForm(editId) {
     var formElement = document.getElementById('char-form');
 
     form.classList.remove('hidden');
+
+    // Show/hide death fields based on deceased checkbox
+    var deceasedCheckbox = document.getElementById('char-deceased');
+    var deathFields = document.getElementById('death-fields');
+    if (deceasedCheckbox) {
+        deceasedCheckbox.addEventListener('change', function() {
+            if (deathFields) {
+                deathFields.style.display = this.checked ? 'block' : 'none';
+            }
+        });
+    }
 
     if (editId) {
         title.textContent = 'Edit Character';
@@ -332,12 +361,29 @@ function showCharacterForm(editId) {
             document.getElementById('char-build').value = char.build || '';
             document.getElementById('char-appearance-notes').value = char.appearanceNotes || '';
             document.getElementById('char-notes').value = char.notes || '';
+            
+            // Death fields
+            document.getElementById('char-deceased').checked = char.deceased || false;
+            document.getElementById('char-death-year').value = char.deathYear || '';
+            document.getElementById('char-death-cause').value = char.deathCause || '';
+            document.getElementById('char-death-age').value = char.deathAge || '';
+            
+            // Show/hide death fields
+            var deathFields = document.getElementById('death-fields');
+            if (deathFields) {
+                deathFields.style.display = char.deceased ? 'block' : 'none';
+            }
+            
             formElement.dataset.editId = editId;
         }
     } else {
         title.textContent = 'Add Character';
         formElement.reset();
         delete formElement.dataset.editId;
+        var deathFields = document.getElementById('death-fields');
+        if (deathFields) {
+            deathFields.style.display = 'none';
+        }
     }
 
     document.getElementById('char-form').scrollIntoView({ behavior: 'smooth' });
@@ -352,6 +398,11 @@ function saveCharacter(e) {
     var form = e.target;
     var editId = form.dataset.editId;
 
+    var isDeceased = document.getElementById('char-deceased').checked;
+    var deathYear = document.getElementById('char-death-year').value.trim();
+    var deathCause = document.getElementById('char-death-cause').value.trim();
+    var deathAge = document.getElementById('char-death-age').value.trim();
+
     var charData = {
         firstName: document.getElementById('char-firstname').value.trim(),
         middleName: document.getElementById('char-middlename').value.trim(),
@@ -365,7 +416,11 @@ function saveCharacter(e) {
         height: document.getElementById('char-height').value.trim(),
         build: document.getElementById('char-build').value.trim(),
         appearanceNotes: document.getElementById('char-appearance-notes').value.trim(),
-        notes: document.getElementById('char-notes').value.trim()
+        notes: document.getElementById('char-notes').value.trim(),
+        deceased: isDeceased,
+        deathYear: deathYear,
+        deathCause: deathCause,
+        deathAge: deathAge
     };
 
     if (!charData.firstName) {
@@ -373,9 +428,29 @@ function saveCharacter(e) {
         return;
     }
 
+    // Validate death fields
+    if (isDeceased) {
+        if (!deathYear && !deathAge) {
+            alert('Please enter either Death Year or Death Age for deceased characters.');
+            return;
+        }
+        // Auto-calculate death age if not provided
+        if (!deathAge && deathYear && charData.birthYear) {
+            var birthYear = parseInt(charData.birthYear);
+            var dYear = parseInt(deathYear);
+            if (!isNaN(birthYear) && !isNaN(dYear)) {
+                charData.deathAge = String(dYear - birthYear);
+            }
+        }
+    }
+
     if (editId) {
         var index = data.characters.findIndex(function(c) { return c.id === editId; });
         if (index !== -1) {
+            // Preserve existing death age if not provided
+            if (!charData.deathAge && data.characters[index].deathAge) {
+                charData.deathAge = data.characters[index].deathAge;
+            }
             data.characters[index] = Object.assign({}, data.characters[index], charData);
             logActivity('Updated character: ' + charData.firstName);
         }
@@ -395,6 +470,10 @@ function saveCharacter(e) {
             build: charData.build,
             appearanceNotes: charData.appearanceNotes,
             notes: charData.notes,
+            deceased: charData.deceased,
+            deathYear: charData.deathYear,
+            deathCause: charData.deathCause,
+            deathAge: charData.deathAge,
             createdAt: new Date().toISOString()
         };
         data.characters.push(newChar);
@@ -436,8 +515,71 @@ function deleteCharacter(id) {
     updateDashboard();
 }
 
+// ---- Year Management ----
+function showYearModal() {
+    var currentYear = data.currentYear || new Date().getFullYear();
+    var newYear = prompt('Enter the current year:', currentYear);
+    if (newYear !== null) {
+        var yearNum = parseInt(newYear);
+        if (!isNaN(yearNum) && yearNum > 0) {
+            setCurrentYear(yearNum);
+        } else {
+            alert('Please enter a valid year.');
+        }
+    }
+}
+
+// ---- Export/Import (same as before, with death fields added) ----
+function exportJSON() {
+    var jsonData = JSON.stringify(data, null, 2);
+    var blob = new Blob([jsonData], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'tournament-data-' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    logActivity('Exported data to JSON');
+}
+
+function importJSON(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            var imported = JSON.parse(e.target.result);
+            
+            if (!imported.characters || !imported.teams || !imported.tournaments) {
+                alert('Invalid data format. Missing required fields.');
+                return;
+            }
+
+            if (!confirm('This will replace all current data. Continue?')) return;
+
+            data.characters = imported.characters || [];
+            data.teams = imported.teams || [];
+            data.tournaments = imported.tournaments || [];
+            data.activities = imported.activities || [];
+            data.currentYear = imported.currentYear || new Date().getFullYear();
+            
+            saveData().then(function() {
+                logActivity('Imported data from JSON');
+                renderAll();
+                updateDashboard();
+                alert('Data imported successfully!');
+            }).catch(function(err) {
+                alert('Failed to save data: ' + err.message);
+            });
+        } catch (err) {
+            alert('Failed to import JSON: ' + err.message);
+        }
+    };
+    reader.readAsText(file);
+}
+
 // ============================================================
-// TEAM MANAGEMENT
+// TEAM MANAGEMENT (unchanged)
 // ============================================================
 
 var currentEditMember = null;
@@ -629,11 +771,14 @@ function renderMembers(team) {
     team.members.forEach(function(member, index) {
         var char = data.characters.find(function(c) { return c.id === member.characterId; });
         var name = char ? [char.firstName, char.middleName, char.lastName].filter(function(n) { return n; }).join(' ') : 'Unknown';
+        var age = char ? getCharacterAge(char) : '-';
+        var deadMarker = char && char.deceased ? ' 💀' : '';
         html += '<div class="member-entry">' +
             '<div class="member-info">' +
-                '<span><strong>' + name + '</strong></span>' +
+                '<span><strong>' + name + deadMarker + '</strong></span>' +
                 '<span class="role">' + (member.role || 'Member') + '</span>' +
                 '<span class="years">' + (member.joinYear || '?') + (member.leaveYear ? ' → ' + member.leaveYear : '') + '</span>' +
+                '<span class="years">Age: ' + age + '</span>' +
             '</div>' +
             '<div class="member-actions">' +
                 '<button class="small edit-member" data-team="' + team.id + '" data-index="' + index + '">✎</button>' +
@@ -769,7 +914,7 @@ function saveEditMember(e) {
 }
 
 // ============================================================
-// TOURNAMENT MANAGEMENT
+// TOURNAMENT MANAGEMENT (unchanged)
 // ============================================================
 
 function renderTournaments() {
@@ -1072,14 +1217,14 @@ function renderBracket(tourn) {
 }
 
 // ============================================================
-// CSV EXPORT/IMPORT (same as before)
+// CSV EXPORT/IMPORT
 // ============================================================
 
 function exportCSV() {
     var lines = [];
 
     lines.push('# CHARACTERS');
-    lines.push('FirstName,MiddleName,LastName,BirthYear,Gender,AssociatedNames,EyeColor,HairColor,SkinColor,Height,Build,AppearanceNotes,Notes');
+    lines.push('FirstName,MiddleName,LastName,BirthYear,Gender,AssociatedNames,EyeColor,HairColor,SkinColor,Height,Build,AppearanceNotes,Notes,Deceased,DeathYear,DeathCause,DeathAge');
     data.characters.forEach(function(c) {
         lines.push([
             csvField(c.firstName || ''),
@@ -1094,7 +1239,11 @@ function exportCSV() {
             csvField(c.height || ''),
             csvField(c.build || ''),
             csvField(c.appearanceNotes || ''),
-            csvField(c.notes || '')
+            csvField(c.notes || ''),
+            c.deceased ? 'true' : 'false',
+            c.deathYear || '',
+            csvField(c.deathCause || ''),
+            c.deathAge || ''
         ].join(','));
     });
 
@@ -1157,7 +1306,8 @@ function importCSV(file) {
                 characters: [],
                 teams: [],
                 tournaments: [],
-                activities: []
+                activities: [],
+                currentYear: data.currentYear || new Date().getFullYear()
             };
             var charMap = {};
             var teamMap = {};
@@ -1179,7 +1329,7 @@ function importCSV(file) {
 
                 var values = parseCSVLine(line);
 
-                if (section === 'characters' && values.length >= 13) {
+                if (section === 'characters' && values.length >= 17) {
                     var char = {
                         id: generateId(),
                         firstName: values[0] || '',
@@ -1195,6 +1345,10 @@ function importCSV(file) {
                         build: values[10] || '',
                         appearanceNotes: values[11] || '',
                         notes: values[12] || '',
+                        deceased: values[13] === 'true',
+                        deathYear: values[14] || '',
+                        deathCause: values[15] || '',
+                        deathAge: values[16] || '',
                         createdAt: new Date().toISOString()
                     };
                     newData.characters.push(char);
@@ -1271,6 +1425,7 @@ function importCSV(file) {
             data.teams = newData.teams;
             data.tournaments = newData.tournaments;
             data.activities = newData.activities;
+            data.currentYear = newData.currentYear;
             
             saveData().then(function() {
                 logActivity('Imported data from CSV');
@@ -1290,9 +1445,9 @@ function importCSV(file) {
 function exportTemplateCSV() {
     var lines = [
         '# CHARACTERS',
-        'FirstName,MiddleName,LastName,BirthYear,Gender,AssociatedNames,EyeColor,HairColor,SkinColor,Height,Build,AppearanceNotes,Notes',
-        'John,,Doe,1990,Male,,Blue,Brown,Fair,5\'10",Athletic,,Example character',
-        'Jane,Mary,Smith,1992,Female,The Shadow,Green,Black,Olive,5\'7",Slim,Scar on cheek,',
+        'FirstName,MiddleName,LastName,BirthYear,Gender,AssociatedNames,EyeColor,HairColor,SkinColor,Height,Build,AppearanceNotes,Notes,Deceased,DeathYear,DeathCause,DeathAge',
+        'John,,Doe,1990,Male,,Blue,Brown,Fair,5\'10",Athletic,,Example character,false,,,',
+        'Jane,Mary,Smith,1992,Female,The Shadow,Green,Black,Olive,5\'7",Slim,Scar on cheek,,false,,,',
         '',
         '# TEAMS',
         'TeamName,TeamType,FoundedYear,Status',
@@ -1419,6 +1574,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (page === 'index.html' || page === '') {
             updateDashboard();
+            
+            // Add year selector to dashboard
+            var statsGrid = document.querySelector('.stats-grid');
+            if (statsGrid) {
+                var yearCard = document.createElement('div');
+                yearCard.className = 'stat-card';
+                yearCard.innerHTML = 
+                    '<h3>Current Year</h3>' +
+                    '<p class="stat-number" id="current-year-display" style="font-size:1.8rem;cursor:pointer;" onclick="showYearModal()">' + (data.currentYear || new Date().getFullYear()) + '</p>' +
+                    '<span style="font-size:.75rem;color:var(--text-dim);cursor:pointer;" onclick="showYearModal()">Click to change</span>';
+                statsGrid.appendChild(yearCard);
+            }
+            
         } else if (page === 'characters.html') {
             renderCharacters();
 
@@ -1471,3 +1639,8 @@ window.addEventListener('beforeunload', function() {
         console.warn('Failed to save on unload:', err);
     });
 });
+
+// Expose functions globally
+window.showYearModal = showYearModal;
+window.setCurrentYear = setCurrentYear;
+window.calculateAge = calculateAge;
