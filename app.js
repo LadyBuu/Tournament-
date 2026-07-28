@@ -3,7 +3,7 @@
 // ============================================================
 
 // ---- Data Store ----
-let data = {
+var data = {
     characters: [],
     teams: [],
     tournaments: [],
@@ -13,9 +13,14 @@ let data = {
 // Load from localStorage
 function loadData() {
     try {
-        const stored = localStorage.getItem('tournament-manager-data');
+        var stored = localStorage.getItem('tournament-manager-data');
         if (stored) {
-            data = JSON.parse(stored);
+            var parsed = JSON.parse(stored);
+            // Ensure all required fields exist
+            data.characters = parsed.characters || [];
+            data.teams = parsed.teams || [];
+            data.tournaments = parsed.tournaments || [];
+            data.activities = parsed.activities || [];
             return true;
         }
     } catch (e) {
@@ -112,7 +117,10 @@ function importJSON(file) {
 
             if (!confirm('This will replace all current data. Continue?')) return;
 
-            data = imported;
+            data.characters = imported.characters || [];
+            data.teams = imported.teams || [];
+            data.tournaments = imported.tournaments || [];
+            data.activities = imported.activities || [];
             saveData();
             logActivity('Imported data from JSON');
             renderAll();
@@ -319,7 +327,10 @@ function importCSV(file) {
                 return;
             }
 
-            data = newData;
+            data.characters = newData.characters;
+            data.teams = newData.teams;
+            data.tournaments = newData.tournaments;
+            data.activities = newData.activities;
             saveData();
             logActivity('Imported data from CSV');
             renderAll();
@@ -416,6 +427,9 @@ function parseCSVLine(line) {
 
 // ---- Render All ----
 function renderAll() {
+    // First, ensure data is loaded
+    loadData();
+    
     var path = window.location.pathname;
     var page = path.split('/').pop() || 'index.html';
     
@@ -434,6 +448,9 @@ function renderAll() {
 function renderCharacters() {
     var container = document.getElementById('characters-container');
     if (!container) return;
+
+    // Reload data to ensure we have the latest
+    loadData();
 
     if (data.characters.length === 0) {
         container.innerHTML = '<p class="empty-state">No characters created yet. Add your first character!</p>';
@@ -604,6 +621,9 @@ var currentEditMember = null;
 function renderTeams() {
     var container = document.getElementById('teams-container');
     if (!container) return;
+
+    // Reload data to ensure we have the latest
+    loadData();
 
     if (data.teams.length === 0) {
         container.innerHTML = '<p class="empty-state">No teams created yet. Add your first team!</p>';
@@ -914,6 +934,9 @@ function saveEditMember(e) {
 function renderTournaments() {
     var container = document.getElementById('tournaments-container');
     if (!container) return;
+
+    // Reload data to ensure we have the latest
+    loadData();
 
     if (data.tournaments.length === 0) {
         container.innerHTML = '<p class="empty-state">No tournaments created yet. Create your first tournament!</p>';
@@ -1236,6 +1259,7 @@ function initImportExport() {
 
 // ---- Initialize ----
 document.addEventListener('DOMContentLoaded', function() {
+    // Load data first
     loadData();
     initImportExport();
 
@@ -1285,5 +1309,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('add-team-to-tournament').addEventListener('click', addTeamToTournament);
     }
 
+    // Auto-save every 30 seconds
     setInterval(saveData, 30000);
+});
+
+// Also save on page unload
+window.addEventListener('beforeunload', function() {
+    saveData();
 });
