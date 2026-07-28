@@ -676,7 +676,6 @@ main {
   .bracket-round {
     min-width: 120px;
   }
-}
 
 /* Deceased character styling */
 .list-item.deceased {
@@ -727,4 +726,6 @@ main {
 /* Stats grid adjustment */
 .stat-card:last-child {
     cursor: default;
+}
+
 }
