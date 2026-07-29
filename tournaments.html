@@ -16,6 +16,7 @@
             <a href="characters.html">Characters</a>
             <a href="teams.html">Teams</a>
             <a href="tournaments.html" class="active">Tournaments</a>
+            <a href="calendar.html">Calendar</a>
         </nav>
         <div class="header-actions">
             <button id="export-json-btn" class="small">Export JSON</button>
@@ -34,7 +35,6 @@
             <button id="add-tournament-btn" class="primary">+ Create Tournament</button>
         </div>
 
-        <!-- Tournament Form -->
         <div id="tournament-form" class="form-container hidden">
             <h3 id="tournament-form-title">Create Tournament</h3>
             <form id="tournament-form-inner">
@@ -55,6 +55,10 @@
                         <label>End Week</label>
                         <input type="number" id="tournament-end-week" min="1" max="52">
                     </div>
+                    <div class="form-group">
+                        <label>Eliminations per Week</label>
+                        <input type="number" id="tournament-eliminations" value="4" min="1">
+                    </div>
                     <div class="form-group full-width">
                         <label>Description</label>
                         <textarea id="tournament-description" rows="3" placeholder="Tournament details..."></textarea>
@@ -67,7 +71,6 @@
             </form>
         </div>
 
-        <!-- Tournament List -->
         <div id="tournament-list">
             <div class="list-header">
                 <span>Tournament</span>
