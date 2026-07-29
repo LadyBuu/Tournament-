@@ -4,7 +4,7 @@
 
 // ---- Database Configuration ----
 var DB_NAME = 'TournamentManagerDB';
-var DB_VERSION = 2;
+var DB_VERSION = 3;
 var STORE_NAME = 'tournamentData';
 
 // ---- Data Store ----
@@ -13,10 +13,12 @@ var data = {
     teams: [],
     tournaments: [],
     activities: [],
-    currentYear: new Date().getFullYear()
+    currentYear: new Date().getFullYear(),
+    currentWeek: 1
 };
 
 var db = null;
+var currentCalendarWeek = 1;
 
 // ---- Open Database ----
 function openDatabase() {
@@ -75,15 +77,30 @@ function loadDataInternal() {
                 var result = event.target.result;
                 if (result && result.data) {
                     data = result.data;
-                    if (!data.currentYear) {
-                        data.currentYear = new Date().getFullYear();
-                    }
+                    if (!data.currentYear) data.currentYear = new Date().getFullYear();
+                    if (!data.currentWeek) data.currentWeek = 1;
+                    
+                    // Migrate character data
                     data.characters.forEach(function(char) {
                         if (char.deceased === undefined) char.deceased = false;
                         if (char.deathYear === undefined) char.deathYear = '';
                         if (char.deathCause === undefined) char.deathCause = '';
                         if (char.deathAge === undefined) char.deathAge = '';
+                        if (char.careerStatus === undefined) char.careerStatus = [];
+                        if (char.specialty === undefined) char.specialty = '';
+                        if (char.eliminatedWeeks === undefined) char.eliminatedWeeks = [];
                     });
+                    
+                    // Migrate team data
+                    data.teams.forEach(function(team) {
+                        if (team.nameHistory === undefined) team.nameHistory = [];
+                        if (team.rankingHistory === undefined) team.rankingHistory = [];
+                        if (team.members === undefined) team.members = [];
+                        if (team.currentRank === undefined) team.currentRank = '';
+                        if (team.startPeriod === undefined) team.startPeriod = '';
+                        if (team.endPeriod === undefined) team.endPeriod = '';
+                    });
+                    
                     console.log('Data loaded from IndexedDB');
                     resolve(data);
                 } else {
@@ -92,7 +109,8 @@ function loadDataInternal() {
                         teams: [],
                         tournaments: [],
                         activities: [],
-                        currentYear: new Date().getFullYear()
+                        currentYear: new Date().getFullYear(),
+                        currentWeek: 1
                     };
                     console.log('No data found, using defaults');
                     resolve(data);
@@ -186,13 +204,11 @@ function updateDashboard() {
     if (teamCount) teamCount.textContent = data.teams.length;
     if (tournCount) tournCount.textContent = data.tournaments.length;
 
-    // Update year display
     var yearDisplay = document.getElementById('current-year-display');
     if (yearDisplay) {
         yearDisplay.textContent = data.currentYear || new Date().getFullYear();
     }
 
-    // Update header year if exists
     var headerYear = document.getElementById('header-current-year');
     if (headerYear) {
         headerYear.textContent = data.currentYear || new Date().getFullYear();
@@ -224,7 +240,6 @@ function renderAll() {
         updateDashboard();
     } else if (page === 'characters.html') {
         renderCharacters();
-        // Update header year
         var headerYear = document.getElementById('header-current-year');
         if (headerYear) {
             headerYear.textContent = data.currentYear || new Date().getFullYear();
@@ -233,6 +248,8 @@ function renderAll() {
         renderTeams();
     } else if (page === 'tournaments.html') {
         renderTournaments();
+    } else if (page === 'calendar.html') {
+        renderCalendar();
     }
 }
 
@@ -249,11 +266,6 @@ function setCurrentYear(year) {
         logActivity('Set current year to ' + yearNum);
         renderAll();
         updateDashboard();
-        // Update header year if exists
-        var headerYear = document.getElementById('header-current-year');
-        if (headerYear) {
-            headerYear.textContent = yearNum;
-        }
     }).catch(function(err) {
         console.error('Failed to save year:', err);
         alert('Failed to save year. Please try again.');
@@ -288,20 +300,33 @@ function calculateAge(char) {
     if (char.deceased && char.deathYear) {
         var deathYear = parseInt(char.deathYear);
         if (!isNaN(deathYear)) {
-            var age = deathYear - birthYear;
-            return age;
+            return deathYear - birthYear;
         }
         return null;
     }
     
     var currentYear = data.currentYear || new Date().getFullYear();
-    var age = currentYear - birthYear;
-    return age;
+    return currentYear - birthYear;
 }
 
 function getCharacterAge(char) {
     var age = calculateAge(char);
     return age !== null ? age : '-';
+}
+
+// ---- Get Current Status ----
+function getCurrentStatus(char) {
+    if (!char.careerStatus || char.careerStatus.length === 0) return 'Civilian';
+    var currentYear = data.currentYear || new Date().getFullYear();
+    var currentStatus = 'Civilian';
+    char.careerStatus.forEach(function(status) {
+        var start = parseInt(status.startYear);
+        var end = status.endYear ? parseInt(status.endYear) : null;
+        if (!isNaN(start) && start <= currentYear && (end === null || currentYear <= end)) {
+            currentStatus = status.status;
+        }
+    });
+    return currentStatus;
 }
 
 // ============================================================
@@ -326,11 +351,10 @@ function renderCharacters() {
     var html = '';
     sortedChars.forEach(function(char) {
         var fullName = [char.firstName, char.middleName, char.lastName].filter(function(n) { return n; }).join(' ');
-        var appearance = [char.eyes, char.hair, char.skin].filter(function(n) { return n; }).join(', ');
-        
         var age = calculateAge(char);
         var ageDisplay = age !== null ? age + ' yrs' : '-';
-        
+        var status = getCurrentStatus(char);
+        var teamCount = getCharacterTeamCount(char.id);
         var isDead = char.deceased || false;
         var deadClass = isDead ? ' deceased' : '';
         var deadBadge = isDead ? ' <span class="deceased-badge">💀 Deceased</span>' : '';
@@ -338,8 +362,8 @@ function renderCharacters() {
         html += '<div class="list-item' + deadClass + '" data-id="' + char.id + '">' +
             '<span><strong>' + fullName + '</strong>' + deadBadge + '</span>' +
             '<span>' + ageDisplay + '</span>' +
-            '<span>' + (char.birthYear || '-') + '</span>' +
-            '<span>' + (appearance || '-') + '</span>' +
+            '<span>' + status + '</span>' +
+            '<span>' + teamCount + '</span>' +
             '<span class="actions">' +
                 '<button class="small edit-character" data-id="' + char.id + '">✎</button>' +
                 '<button class="small danger delete-character" data-id="' + char.id + '">✕</button>' +
@@ -356,6 +380,16 @@ function renderCharacters() {
     });
 }
 
+function getCharacterTeamCount(charId) {
+    var count = 0;
+    data.teams.forEach(function(team) {
+        if (team.members && team.members.some(function(m) { return m.characterId === charId; })) {
+            count++;
+        }
+    });
+    return count || '-';
+}
+
 function showCharacterForm(editId) {
     if (editId === undefined) editId = null;
     var form = document.getElementById('character-form');
@@ -367,13 +401,24 @@ function showCharacterForm(editId) {
     var deceasedCheckbox = document.getElementById('char-deceased');
     var deathFields = document.getElementById('death-fields');
     if (deceasedCheckbox) {
-        deceasedCheckbox.removeEventListener('change', function() {});
-        deceasedCheckbox.addEventListener('change', function() {
+        deceasedCheckbox.onchange = function() {
             if (deathFields) {
                 deathFields.style.display = this.checked ? 'block' : 'none';
             }
-        });
+        };
     }
+
+    // Status specialty field
+    var statusSelects = document.querySelectorAll('.career-status-select');
+    var specialtyField = document.getElementById('specialty-field');
+    statusSelects.forEach(function(select) {
+        select.onchange = function() {
+            if (specialtyField) {
+                var val = this.value;
+                specialtyField.style.display = (val === 'instructor' || val === 'support') ? 'block' : 'none';
+            }
+        };
+    });
 
     if (editId) {
         title.textContent = 'Edit Character';
@@ -392,6 +437,7 @@ function showCharacterForm(editId) {
             document.getElementById('char-build').value = char.build || '';
             document.getElementById('char-appearance-notes').value = char.appearanceNotes || '';
             document.getElementById('char-notes').value = char.notes || '';
+            document.getElementById('char-specialty').value = char.specialty || '';
             
             document.getElementById('char-deceased').checked = char.deceased || false;
             document.getElementById('char-death-year').value = char.deathYear || '';
@@ -400,6 +446,17 @@ function showCharacterForm(editId) {
             
             if (deathFields) {
                 deathFields.style.display = char.deceased ? 'block' : 'none';
+            }
+            
+            // Render career statuses
+            var container = document.getElementById('career-status-container');
+            container.innerHTML = '';
+            if (char.careerStatus && char.careerStatus.length > 0) {
+                char.careerStatus.forEach(function(status) {
+                    addCareerStatusEntry(container, status.status, status.startYear, status.endYear);
+                });
+            } else {
+                addCareerStatusEntry(container);
             }
             
             formElement.dataset.editId = editId;
@@ -411,9 +468,56 @@ function showCharacterForm(editId) {
         if (deathFields) {
             deathFields.style.display = 'none';
         }
+        var container = document.getElementById('career-status-container');
+        container.innerHTML = '';
+        addCareerStatusEntry(container);
+        document.getElementById('char-specialty').value = '';
+        if (specialtyField) {
+            specialtyField.style.display = 'none';
+        }
     }
 
     document.getElementById('char-form').scrollIntoView({ behavior: 'smooth' });
+}
+
+function addCareerStatusEntry(container, status, startYear, endYear) {
+    var entry = document.createElement('div');
+    entry.className = 'career-status-entry';
+    entry.innerHTML = `
+        <select class="career-status-select">
+            <option value="">Select status...</option>
+            <option value="civilian" ${status === 'civilian' ? 'selected' : ''}>Civilian</option>
+            <option value="trainee" ${status === 'trainee' ? 'selected' : ''}>Trainee</option>
+            <option value="rookie" ${status === 'rookie' ? 'selected' : ''}>Rookie</option>
+            <option value="junior" ${status === 'junior' ? 'selected' : ''}>Junior</option>
+            <option value="senior" ${status === 'senior' ? 'selected' : ''}>Senior</option>
+            <option value="instructor" ${status === 'instructor' ? 'selected' : ''}>Instructor</option>
+            <option value="support" ${status === 'support' ? 'selected' : ''}>Support</option>
+        </select>
+        <input type="number" class="career-start-year" placeholder="Start Year" value="${startYear || ''}">
+        <input type="number" class="career-end-year" placeholder="End Year (or leave blank)" value="${endYear || ''}">
+        <button type="button" class="small danger remove-status">✕</button>
+    `;
+    container.appendChild(entry);
+    
+    // Handle specialty field visibility
+    var select = entry.querySelector('.career-status-select');
+    var specialtyField = document.getElementById('specialty-field');
+    select.onchange = function() {
+        if (specialtyField) {
+            var val = this.value;
+            specialtyField.style.display = (val === 'instructor' || val === 'support') ? 'block' : 'none';
+        }
+    };
+    
+    // Remove button
+    entry.querySelector('.remove-status').onclick = function() {
+        if (container.children.length > 1) {
+            entry.remove();
+        } else {
+            alert('You need at least one status entry.');
+        }
+    };
 }
 
 function hideCharacterForm() {
@@ -429,6 +533,22 @@ function saveCharacter(e) {
     var deathYear = document.getElementById('char-death-year').value.trim();
     var deathCause = document.getElementById('char-death-cause').value.trim();
     var deathAge = document.getElementById('char-death-age').value.trim();
+
+    // Collect career statuses
+    var careerStatus = [];
+    var statusEntries = document.querySelectorAll('.career-status-entry');
+    statusEntries.forEach(function(entry) {
+        var select = entry.querySelector('.career-status-select');
+        var startInput = entry.querySelector('.career-start-year');
+        var endInput = entry.querySelector('.career-end-year');
+        if (select.value) {
+            careerStatus.push({
+                status: select.value,
+                startYear: startInput.value || '',
+                endYear: endInput.value || ''
+            });
+        }
+    });
 
     var charData = {
         firstName: document.getElementById('char-firstname').value.trim(),
@@ -447,7 +567,10 @@ function saveCharacter(e) {
         deceased: isDeceased,
         deathYear: deathYear,
         deathCause: deathCause,
-        deathAge: deathAge
+        deathAge: deathAge,
+        careerStatus: careerStatus,
+        specialty: document.getElementById('char-specialty').value.trim(),
+        eliminatedWeeks: []
     };
 
     if (!charData.firstName) {
@@ -475,6 +598,7 @@ function saveCharacter(e) {
             if (!charData.deathAge && data.characters[index].deathAge) {
                 charData.deathAge = data.characters[index].deathAge;
             }
+            if (!charData.eliminatedWeeks) charData.eliminatedWeeks = [];
             data.characters[index] = Object.assign({}, data.characters[index], charData);
             logActivity('Updated character: ' + charData.firstName);
         }
@@ -498,6 +622,9 @@ function saveCharacter(e) {
             deathYear: charData.deathYear,
             deathCause: charData.deathCause,
             deathAge: charData.deathAge,
+            careerStatus: charData.careerStatus,
+            specialty: charData.specialty,
+            eliminatedWeeks: [],
             createdAt: new Date().toISOString()
         };
         data.characters.push(newChar);
@@ -556,13 +683,19 @@ function renderTeams() {
 
     var html = '';
     data.teams.forEach(function(team) {
+        var periodDisplay = team.startPeriod ? 'Wk ' + team.startPeriod : '';
+        if (team.endPeriod) periodDisplay += ' - Wk ' + team.endPeriod;
+        if (!periodDisplay) periodDisplay = '-';
+        
         html += '<div class="list-item" data-id="' + team.id + '">' +
             '<span><strong>' + team.name + '</strong></span>' +
             '<span>' + (team.type || '-') + '</span>' +
+            '<span>' + periodDisplay + '</span>' +
+            '<span>' + (team.currentRank || '-') + '</span>' +
             '<span>' + (team.members ? team.members.length : 0) + '</span>' +
-            '<span>' + (team.status || 'active') + '</span>' +
             '<span class="actions">' +
                 '<button class="small manage-members" data-id="' + team.id + '">👥</button>' +
+                '<button class="small manage-rankings" data-id="' + team.id + '">🏆</button>' +
                 '<button class="small edit-team" data-id="' + team.id + '">✎</button>' +
                 '<button class="small danger delete-team" data-id="' + team.id + '">✕</button>' +
             '</span>' +
@@ -572,6 +705,9 @@ function renderTeams() {
 
     container.querySelectorAll('.manage-members').forEach(function(btn) {
         btn.addEventListener('click', function() { openMemberModal(btn.dataset.id); });
+    });
+    container.querySelectorAll('.manage-rankings').forEach(function(btn) {
+        btn.addEventListener('click', function() { openRankingModal(btn.dataset.id); });
     });
     container.querySelectorAll('.edit-team').forEach(function(btn) {
         btn.addEventListener('click', function() { editTeam(btn.dataset.id); });
@@ -595,17 +731,53 @@ function showTeamForm(editId) {
         if (team) {
             document.getElementById('team-name').value = team.name || '';
             document.getElementById('team-type').value = team.type || '';
-            document.getElementById('team-founded').value = team.foundedYear || '';
+            document.getElementById('team-start').value = team.startPeriod || '';
+            document.getElementById('team-end').value = team.endPeriod || '';
+            document.getElementById('team-ranking').value = team.currentRank || '';
             document.getElementById('team-status').value = team.status || 'active';
             formElement.dataset.editId = editId;
+            
+            // Name history
+            var container = document.getElementById('name-history-container');
+            container.innerHTML = '';
+            if (team.nameHistory && team.nameHistory.length > 0) {
+                team.nameHistory.forEach(function(entry) {
+                    addNameHistoryEntry(container, entry.name, entry.startPeriod, entry.endPeriod);
+                });
+            } else {
+                addNameHistoryEntry(container);
+            }
         }
     } else {
         title.textContent = 'Add Team';
         formElement.reset();
         delete formElement.dataset.editId;
+        var container = document.getElementById('name-history-container');
+        container.innerHTML = '';
+        addNameHistoryEntry(container);
     }
 
     document.getElementById('team-form').scrollIntoView({ behavior: 'smooth' });
+}
+
+function addNameHistoryEntry(container, name, start, end) {
+    var entry = document.createElement('div');
+    entry.className = 'name-history-entry';
+    entry.innerHTML = `
+        <input type="text" class="name-history-name" placeholder="Team Name" value="${name || ''}">
+        <input type="number" class="name-history-start" placeholder="Start Week/Year" value="${start || ''}">
+        <input type="number" class="name-history-end" placeholder="End Week/Year" value="${end || ''}">
+        <button type="button" class="small danger remove-name">✕</button>
+    `;
+    container.appendChild(entry);
+    
+    entry.querySelector('.remove-name').onclick = function() {
+        if (container.children.length > 1) {
+            entry.remove();
+        } else {
+            alert('You need at least one name entry.');
+        }
+    };
 }
 
 function hideTeamForm() {
@@ -617,11 +789,30 @@ function saveTeam(e) {
     var form = e.target;
     var editId = form.dataset.editId;
 
+    // Collect name history
+    var nameHistory = [];
+    var nameEntries = document.querySelectorAll('.name-history-entry');
+    nameEntries.forEach(function(entry) {
+        var nameInput = entry.querySelector('.name-history-name');
+        var startInput = entry.querySelector('.name-history-start');
+        var endInput = entry.querySelector('.name-history-end');
+        if (nameInput.value.trim()) {
+            nameHistory.push({
+                name: nameInput.value.trim(),
+                startPeriod: startInput.value || '',
+                endPeriod: endInput.value || ''
+            });
+        }
+    });
+
     var teamData = {
         name: document.getElementById('team-name').value.trim(),
         type: document.getElementById('team-type').value,
-        foundedYear: document.getElementById('team-founded').value || '',
-        status: document.getElementById('team-status').value || 'active'
+        startPeriod: document.getElementById('team-start').value || '',
+        endPeriod: document.getElementById('team-end').value || '',
+        currentRank: document.getElementById('team-ranking').value || '',
+        status: document.getElementById('team-status').value || 'active',
+        nameHistory: nameHistory
     };
 
     if (!teamData.name) {
@@ -636,6 +827,8 @@ function saveTeam(e) {
     if (editId) {
         var index = data.teams.findIndex(function(t) { return t.id === editId; });
         if (index !== -1) {
+            if (!teamData.members) teamData.members = data.teams[index].members || [];
+            if (!teamData.rankingHistory) teamData.rankingHistory = data.teams[index].rankingHistory || [];
             data.teams[index] = Object.assign({}, data.teams[index], teamData);
             logActivity('Updated team: ' + teamData.name);
         }
@@ -644,9 +837,13 @@ function saveTeam(e) {
             id: generateId(),
             name: teamData.name,
             type: teamData.type,
-            foundedYear: teamData.foundedYear,
+            startPeriod: teamData.startPeriod,
+            endPeriod: teamData.endPeriod,
+            currentRank: teamData.currentRank,
             status: teamData.status,
+            nameHistory: teamData.nameHistory,
             members: [],
+            rankingHistory: [],
             createdAt: new Date().toISOString()
         };
         data.teams.push(newTeam);
@@ -698,7 +895,8 @@ function openMemberModal(teamId) {
     if (!team) return;
 
     currentTeamId = teamId;
-    document.getElementById('modal-team-name').textContent = team.name + ' - Members';
+    var periodLabel = team.type === 'academic' ? 'Week' : 'Year';
+    document.getElementById('modal-team-name').textContent = team.name + ' - Members (' + periodLabel + 's)';
 
     var select = document.getElementById('member-character');
     select.innerHTML = '<option value="">Select character...</option>';
@@ -708,8 +906,10 @@ function openMemberModal(teamId) {
     });
 
     document.getElementById('member-role').value = '';
-    document.getElementById('member-join-year').value = '';
-    document.getElementById('member-leave-year').value = '';
+    document.getElementById('member-join').placeholder = 'Join ' + periodLabel;
+    document.getElementById('member-join').value = '';
+    document.getElementById('member-leave').placeholder = 'Leave ' + periodLabel;
+    document.getElementById('member-leave').value = '';
 
     renderMembers(team);
 
@@ -728,6 +928,7 @@ function renderMembers(team) {
         return;
     }
 
+    var periodLabel = team.type === 'academic' ? 'Wk' : 'Yr';
     var html = '';
     team.members.forEach(function(member, index) {
         var char = data.characters.find(function(c) { return c.id === member.characterId; });
@@ -738,7 +939,7 @@ function renderMembers(team) {
             '<div class="member-info">' +
                 '<span><strong>' + name + deadMarker + '</strong></span>' +
                 '<span class="role">' + (member.role || 'Member') + '</span>' +
-                '<span class="years">' + (member.joinYear || '?') + (member.leaveYear ? ' → ' + member.leaveYear : '') + '</span>' +
+                '<span class="years">' + periodLabel + (member.joinPeriod || '?') + (member.leavePeriod ? ' → ' + periodLabel + member.leavePeriod : '') + '</span>' +
                 '<span class="years">Age: ' + age + '</span>' +
             '</div>' +
             '<div class="member-actions">' +
@@ -762,8 +963,8 @@ function addMember() {
 
     var charId = document.getElementById('member-character').value;
     var role = document.getElementById('member-role').value.trim();
-    var joinYear = document.getElementById('member-join-year').value;
-    var leaveYear = document.getElementById('member-leave-year').value;
+    var joinPeriod = document.getElementById('member-join').value;
+    var leavePeriod = document.getElementById('member-leave').value;
 
     if (!charId) {
         alert('Please select a character.');
@@ -783,8 +984,8 @@ function addMember() {
     team.members.push({
         characterId: charId,
         role: role || 'Member',
-        joinYear: joinYear || '',
-        leaveYear: leaveYear || ''
+        joinPeriod: joinPeriod || '',
+        leavePeriod: leavePeriod || ''
     });
 
     var char = data.characters.find(function(c) { return c.id === charId; });
@@ -799,8 +1000,8 @@ function addMember() {
     updateDashboard();
 
     document.getElementById('member-role').value = '';
-    document.getElementById('member-join-year').value = '';
-    document.getElementById('member-leave-year').value = '';
+    document.getElementById('member-join').value = '';
+    document.getElementById('member-leave').value = '';
 }
 
 function removeMember(teamId, charId) {
@@ -832,10 +1033,13 @@ function openEditMemberModal(teamId, index) {
 
     currentEditMember = { teamId: teamId, index: index };
 
+    var periodLabel = team.type === 'academic' ? 'Week' : 'Year';
     document.getElementById('edit-member-name').textContent = name;
     document.getElementById('edit-member-role').value = member.role || '';
-    document.getElementById('edit-member-join-year').value = member.joinYear || '';
-    document.getElementById('edit-member-leave-year').value = member.leaveYear || '';
+    document.getElementById('edit-member-join').placeholder = 'Join ' + periodLabel;
+    document.getElementById('edit-member-join').value = member.joinPeriod || '';
+    document.getElementById('edit-member-leave').placeholder = 'Leave ' + periodLabel;
+    document.getElementById('edit-member-leave').value = member.leavePeriod || '';
 
     document.getElementById('edit-member-modal').classList.remove('hidden');
 }
@@ -855,12 +1059,12 @@ function saveEditMember(e) {
     if (!team || !team.members || !team.members[index]) return;
 
     var role = document.getElementById('edit-member-role').value.trim();
-    var joinYear = document.getElementById('edit-member-join-year').value;
-    var leaveYear = document.getElementById('edit-member-leave-year').value;
+    var joinPeriod = document.getElementById('edit-member-join').value;
+    var leavePeriod = document.getElementById('edit-member-leave').value;
 
     team.members[index].role = role || 'Member';
-    team.members[index].joinYear = joinYear || '';
-    team.members[index].leaveYear = leaveYear || '';
+    team.members[index].joinPeriod = joinPeriod || '';
+    team.members[index].leavePeriod = leavePeriod || '';
 
     var char = data.characters.find(function(c) { return c.id === team.members[index].characterId; });
     logActivity('Updated member ' + (char ? char.firstName : '') + ' in team: ' + team.name);
@@ -872,6 +1076,126 @@ function saveEditMember(e) {
     renderMembers(team);
     renderTeams();
     closeEditMemberModal();
+}
+
+// ---- Ranking Management ----
+var currentRankingTeamId = null;
+
+function openRankingModal(teamId) {
+    var modal = document.getElementById('ranking-modal');
+    var team = data.teams.find(function(t) { return t.id === teamId; });
+    if (!team) return;
+
+    currentRankingTeamId = teamId;
+    var periodLabel = team.type === 'academic' ? 'Week' : 'Year';
+    document.getElementById('ranking-modal-title').textContent = team.name + ' - Ranking History';
+
+    document.getElementById('ranking-week').placeholder = periodLabel;
+    document.getElementById('ranking-week').value = '';
+    document.getElementById('ranking-rank').value = '';
+
+    renderRankings(team);
+
+    modal.classList.remove('hidden');
+}
+
+function closeRankingModal() {
+    document.getElementById('ranking-modal').classList.add('hidden');
+    currentRankingTeamId = null;
+}
+
+function renderRankings(team) {
+    var container = document.getElementById('ranking-list');
+    if (!team.rankingHistory || team.rankingHistory.length === 0) {
+        container.innerHTML = '<p class="empty-state">No ranking history</p>';
+        return;
+    }
+
+    var periodLabel = team.type === 'academic' ? 'Wk' : 'Yr';
+    var html = '';
+    // Sort by period
+    var sorted = team.rankingHistory.slice().sort(function(a, b) {
+        return parseInt(a.period) - parseInt(b.period);
+    });
+    sorted.forEach(function(entry, index) {
+        html += '<div class="ranking-entry">' +
+            '<span><strong>#' + entry.rank + '</strong> - ' + periodLabel + ' ' + entry.period + '</span>' +
+            '<button class="small danger remove-ranking" data-team="' + team.id + '" data-index="' + index + '">✕</button>' +
+        '</div>';
+    });
+    container.innerHTML = html;
+
+    container.querySelectorAll('.remove-ranking').forEach(function(btn) {
+        btn.addEventListener('click', function() { removeRanking(btn.dataset.team, parseInt(btn.dataset.index)); });
+    });
+}
+
+function addRanking() {
+    if (!currentRankingTeamId) return;
+
+    var period = document.getElementById('ranking-week').value;
+    var rank = document.getElementById('ranking-rank').value;
+
+    if (!period) {
+        alert('Please enter a ' + (data.teams.find(t => t.id === currentRankingTeamId)?.type === 'academic' ? 'week' : 'year') + '.');
+        return;
+    }
+    if (!rank) {
+        alert('Please enter a rank.');
+        return;
+    }
+
+    var team = data.teams.find(function(t) { return t.id === currentRankingTeamId; });
+    if (!team) return;
+
+    if (!team.rankingHistory) team.rankingHistory = [];
+
+    // Check if ranking for this period already exists
+    var existing = team.rankingHistory.findIndex(function(r) { return r.period === period; });
+    if (existing !== -1) {
+        if (!confirm('Ranking for ' + period + ' already exists. Overwrite?')) return;
+        team.rankingHistory[existing] = { period: period, rank: rank };
+    } else {
+        team.rankingHistory.push({ period: period, rank: rank });
+    }
+
+    // Update current rank
+    team.currentRank = rank;
+
+    logActivity('Added ranking #' + rank + ' for team: ' + team.name);
+    saveData().catch(function(err) {
+        console.error('Failed to save:', err);
+    });
+    
+    renderRankings(team);
+    renderTeams();
+    document.getElementById('ranking-week').value = '';
+    document.getElementById('ranking-rank').value = '';
+}
+
+function removeRanking(teamId, index) {
+    if (!confirm('Remove this ranking entry?')) return;
+
+    var team = data.teams.find(function(t) { return t.id === teamId; });
+    if (!team || !team.rankingHistory) return;
+
+    team.rankingHistory.splice(index, 1);
+    if (team.rankingHistory.length > 0) {
+        var sorted = team.rankingHistory.slice().sort(function(a, b) {
+            return parseInt(a.period) - parseInt(b.period);
+        });
+        team.currentRank = sorted[sorted.length - 1].rank;
+    } else {
+        team.currentRank = '';
+    }
+
+    logActivity('Removed ranking from team: ' + team.name);
+    saveData().catch(function(err) {
+        console.error('Failed to save:', err);
+    });
+    
+    renderRankings(team);
+    renderTeams();
 }
 
 // ============================================================
@@ -894,7 +1218,7 @@ function renderTournaments() {
         html += '<div class="list-item" data-id="' + tourn.id + '">' +
             '<span><strong>' + tourn.name + '</strong></span>' +
             '<span>' + (tourn.academicYear || '-') + '</span>' +
-            '<span>' + (tourn.startWeek || '?') + ' - ' + (tourn.endWeek || '?') + '</span>' +
+            '<span>Wk ' + (tourn.startWeek || '?') + ' - Wk ' + (tourn.endWeek || '?') + '</span>' +
             '<span>' + teamCount + '</span>' +
             '<span>' + (tourn.status || 'draft') + '</span>' +
             '<span class="actions">' +
@@ -933,12 +1257,14 @@ function showTournamentForm(editId) {
             document.getElementById('tournament-year').value = tourn.academicYear || '';
             document.getElementById('tournament-start-week').value = tourn.startWeek || '';
             document.getElementById('tournament-end-week').value = tourn.endWeek || '';
+            document.getElementById('tournament-eliminations').value = tourn.eliminationsPerWeek || 4;
             document.getElementById('tournament-description').value = tourn.description || '';
             formElement.dataset.editId = editId;
         }
     } else {
         title.textContent = 'Create Tournament';
         formElement.reset();
+        document.getElementById('tournament-eliminations').value = 4;
         delete formElement.dataset.editId;
     }
 
@@ -959,6 +1285,7 @@ function saveTournament(e) {
         academicYear: document.getElementById('tournament-year').value.trim(),
         startWeek: document.getElementById('tournament-start-week').value || '',
         endWeek: document.getElementById('tournament-end-week').value || '',
+        eliminationsPerWeek: parseInt(document.getElementById('tournament-eliminations').value) || 4,
         description: document.getElementById('tournament-description').value.trim(),
         status: 'draft'
     };
@@ -981,10 +1308,12 @@ function saveTournament(e) {
             academicYear: tournData.academicYear,
             startWeek: tournData.startWeek,
             endWeek: tournData.endWeek,
+            eliminationsPerWeek: tournData.eliminationsPerWeek,
             description: tournData.description,
             status: tournData.status,
             teams: [],
             bracket: [],
+            eliminations: [],
             createdAt: new Date().toISOString()
         };
         data.tournaments.push(newTourn);
@@ -1033,7 +1362,8 @@ function viewTournament(id) {
     var info = document.getElementById('tournament-info');
     info.innerHTML = 
         '<p><strong>Academic Year:</strong> ' + (tourn.academicYear || 'N/A') + '</p>' +
-        '<p><strong>Weeks:</strong> ' + (tourn.startWeek || '?') + ' - ' + (tourn.endWeek || '?') + '</p>' +
+        '<p><strong>Weeks:</strong> Wk ' + (tourn.startWeek || '?') + ' - Wk ' + (tourn.endWeek || '?') + '</p>' +
+        '<p><strong>Eliminations per Week:</strong> ' + (tourn.eliminationsPerWeek || 4) + '</p>' +
         '<p><strong>Status:</strong> ' + (tourn.status || 'draft') + '</p>' +
         '<p><strong>Description:</strong> ' + (tourn.description || 'No description') + '</p>';
 
@@ -1178,6 +1508,185 @@ function renderBracket(tourn) {
 }
 
 // ============================================================
+// CALENDAR VIEW
+// ============================================================
+
+function renderCalendar() {
+    var weekDisplay = document.getElementById('current-week-display');
+    if (weekDisplay) {
+        var weekNum = currentCalendarWeek || 1;
+        weekDisplay.textContent = 'Week ' + weekNum + '-' + (weekNum + 1);
+    }
+
+    var rankingLabel = document.getElementById('ranking-week-label');
+    if (rankingLabel) {
+        rankingLabel.textContent = 'Week ' + (currentCalendarWeek || 1) + '-' + ((currentCalendarWeek || 1) + 1);
+    }
+
+    renderUnassignedCharacters();
+    renderEliminatedCharacters();
+    renderTeamRankings();
+    renderActiveTeams();
+}
+
+function renderUnassignedCharacters() {
+    var container = document.getElementById('unassigned-characters');
+    if (!container) return;
+
+    var weekNum = currentCalendarWeek || 1;
+    var assignedIds = [];
+    data.teams.forEach(function(team) {
+        if (team.members) {
+            team.members.forEach(function(member) {
+                var join = parseInt(member.joinPeriod);
+                var leave = parseInt(member.leavePeriod);
+                if (!isNaN(join) && join <= weekNum && (isNaN(leave) || leave >= weekNum)) {
+                    assignedIds.push(member.characterId);
+                }
+            });
+        }
+    });
+
+    var unassigned = data.characters.filter(function(char) {
+        return !char.deceased && assignedIds.indexOf(char.id) === -1;
+    });
+
+    if (unassigned.length === 0) {
+        container.innerHTML = '<p class="empty-state">All characters assigned to teams</p>';
+        return;
+    }
+
+    var html = '';
+    unassigned.forEach(function(char) {
+        var name = [char.firstName, char.middleName, char.lastName].filter(function(n) { return n; }).join(' ');
+        html += '<div class="activity-item">' + name + '</div>';
+    });
+    container.innerHTML = html;
+}
+
+function renderEliminatedCharacters() {
+    var container = document.getElementById('eliminated-characters');
+    if (!container) return;
+
+    var weekNum = currentCalendarWeek || 1;
+    var eliminated = data.characters.filter(function(char) {
+        return char.eliminatedWeeks && char.eliminatedWeeks.indexOf(weekNum) !== -1;
+    });
+
+    if (eliminated.length === 0) {
+        container.innerHTML = '<p class="empty-state">No eliminations this week</p>';
+        return;
+    }
+
+    var html = '';
+    eliminated.forEach(function(char) {
+        var name = [char.firstName, char.middleName, char.lastName].filter(function(n) { return n; }).join(' ');
+        html += '<div class="activity-item" style="color:var(--danger);">' + name + '</div>';
+    });
+    container.innerHTML = html;
+}
+
+function renderTeamRankings() {
+    var container = document.getElementById('team-rankings');
+    if (!container) return;
+
+    var weekNum = currentCalendarWeek || 1;
+    var teams = data.teams.filter(function(t) { return t.type === 'academic' && t.status !== 'deleted'; });
+
+    // Get rankings for this week
+    var ranked = [];
+    teams.forEach(function(team) {
+        if (team.rankingHistory) {
+            team.rankingHistory.forEach(function(rank) {
+                var period = parseInt(rank.period);
+                if (!isNaN(period) && period === weekNum) {
+                    ranked.push({
+                        team: team,
+                        rank: parseInt(rank.rank)
+                    });
+                }
+            });
+        }
+    });
+
+    // Also include teams with current rank if no specific week rank
+    teams.forEach(function(team) {
+        if (team.currentRank && !ranked.some(function(r) { return r.team.id === team.id; })) {
+            ranked.push({
+                team: team,
+                rank: parseInt(team.currentRank)
+            });
+        }
+    });
+
+    // Sort by rank
+    ranked.sort(function(a, b) { return a.rank - b.rank; });
+
+    if (ranked.length === 0) {
+        container.innerHTML = '<p class="empty-state">No teams ranked for this week</p>';
+        return;
+    }
+
+    var html = '';
+    ranked.forEach(function(item) {
+        html += '<div class="team-ranking-item">' +
+            '<span class="rank">#' + item.rank + '</span>' +
+            '<span class="team-name">' + item.team.name + '</span>' +
+            '<span style="font-size:.75rem;color:var(--text-dim);">' + (item.team.type || 'academic') + '</span>' +
+        '</div>';
+    });
+    container.innerHTML = html;
+}
+
+function renderActiveTeams() {
+    var container = document.getElementById('active-teams');
+    if (!container) return;
+
+    var weekNum = currentCalendarWeek || 1;
+    var active = data.teams.filter(function(team) {
+        if (team.status === 'deleted') return false;
+        var start = parseInt(team.startPeriod);
+        var end = parseInt(team.endPeriod);
+        return !isNaN(start) && start <= weekNum && (isNaN(end) || end >= weekNum);
+    });
+
+    if (active.length === 0) {
+        container.innerHTML = '<p class="empty-state">No teams active this week</p>';
+        return;
+    }
+
+    var html = '';
+    active.forEach(function(team) {
+        var memberCount = team.members ? team.members.filter(function(m) {
+            var join = parseInt(m.joinPeriod);
+            var leave = parseInt(m.leavePeriod);
+            return !isNaN(join) && join <= weekNum && (isNaN(leave) || leave >= weekNum);
+        }).length : 0;
+        
+        html += '<div class="team-ranking-item">' +
+            '<span class="team-name">' + team.name + '</span>' +
+            '<span style="font-size:.75rem;color:var(--text-dim);">' + memberCount + ' members</span>' +
+            '<span style="font-size:.75rem;color:var(--text-dim);">Rank: ' + (team.currentRank || '-') + '</span>' +
+        '</div>';
+    });
+    container.innerHTML = html;
+}
+
+function prevWeek() {
+    if (currentCalendarWeek > 1) {
+        currentCalendarWeek--;
+        renderCalendar();
+    }
+}
+
+function nextWeek() {
+    if (currentCalendarWeek < 52) {
+        currentCalendarWeek++;
+        renderCalendar();
+    }
+}
+
+// ============================================================
 // CSV EXPORT/IMPORT
 // ============================================================
 
@@ -1185,8 +1694,14 @@ function exportCSV() {
     var lines = [];
 
     lines.push('# CHARACTERS');
-    lines.push('FirstName,MiddleName,LastName,BirthYear,Gender,AssociatedNames,EyeColor,HairColor,SkinColor,Height,Build,AppearanceNotes,Notes,Deceased,DeathYear,DeathCause,DeathAge');
+    lines.push('FirstName,MiddleName,LastName,BirthYear,Gender,AssociatedNames,EyeColor,HairColor,SkinColor,Height,Build,AppearanceNotes,Notes,Deceased,DeathYear,DeathCause,DeathAge,Specialty,CareerStatus');
     data.characters.forEach(function(c) {
+        var careerStr = '';
+        if (c.careerStatus) {
+            careerStr = c.careerStatus.map(function(s) {
+                return s.status + ':' + s.startYear + '-' + (s.endYear || 'present');
+            }).join(';');
+        }
         lines.push([
             csvField(c.firstName || ''),
             csvField(c.middleName || ''),
@@ -1204,31 +1719,50 @@ function exportCSV() {
             c.deceased ? 'true' : 'false',
             c.deathYear || '',
             csvField(c.deathCause || ''),
-            c.deathAge || ''
+            c.deathAge || '',
+            csvField(c.specialty || ''),
+            csvField(careerStr)
         ].join(','));
     });
 
     lines.push('\n# TEAMS');
-    lines.push('TeamName,TeamType,FoundedYear,Status');
+    lines.push('TeamName,TeamType,StartPeriod,EndPeriod,CurrentRank,Status,NameHistory');
     data.teams.forEach(function(t) {
-        lines.push(csvField(t.name) + ',' + csvField(t.type) + ',' + (t.foundedYear || '') + ',' + csvField(t.status));
+        var nameHistoryStr = '';
+        if (t.nameHistory) {
+            nameHistoryStr = t.nameHistory.map(function(n) {
+                return n.name + ':' + n.startPeriod + '-' + (n.endPeriod || 'present');
+            }).join(';');
+        }
+        lines.push(csvField(t.name) + ',' + csvField(t.type) + ',' + (t.startPeriod || '') + ',' + (t.endPeriod || '') + ',' + (t.currentRank || '') + ',' + csvField(t.status) + ',' + csvField(nameHistoryStr));
     });
 
     lines.push('\n# TEAM MEMBERS');
-    lines.push('TeamName,CharacterFirstName,CharacterLastName,Role,JoinYear,LeaveYear');
+    lines.push('TeamName,CharacterName,Role,JoinPeriod,LeavePeriod');
     data.teams.forEach(function(t) {
         if (t.members) {
             t.members.forEach(function(m) {
                 var char = data.characters.find(function(c) { return c.id === m.characterId; });
-                lines.push(csvField(t.name) + ',' + csvField(char ? char.firstName : '') + ',' + csvField(char ? char.lastName : '') + ',' + csvField(m.role) + ',' + (m.joinYear || '') + ',' + (m.leaveYear || ''));
+                var name = char ? [char.firstName, char.middleName, char.lastName].filter(function(n) { return n; }).join(' ') : 'Unknown';
+                lines.push(csvField(t.name) + ',' + csvField(name) + ',' + csvField(m.role) + ',' + (m.joinPeriod || '') + ',' + (m.leavePeriod || ''));
+            });
+        }
+    });
+
+    lines.push('\n# TEAM RANKINGS');
+    lines.push('TeamName,Period,Rank');
+    data.teams.forEach(function(t) {
+        if (t.rankingHistory) {
+            t.rankingHistory.forEach(function(r) {
+                lines.push(csvField(t.name) + ',' + (r.period || '') + ',' + (r.rank || ''));
             });
         }
     });
 
     lines.push('\n# TOURNAMENTS');
-    lines.push('TournamentName,AcademicYear,StartWeek,EndWeek,Status,Description');
+    lines.push('TournamentName,AcademicYear,StartWeek,EndWeek,EliminationsPerWeek,Status,Description');
     data.tournaments.forEach(function(t) {
-        lines.push(csvField(t.name) + ',' + csvField(t.academicYear) + ',' + (t.startWeek || '') + ',' + (t.endWeek || '') + ',' + csvField(t.status) + ',' + csvField(t.description));
+        lines.push(csvField(t.name) + ',' + csvField(t.academicYear) + ',' + (t.startWeek || '') + ',' + (t.endWeek || '') + ',' + (t.eliminationsPerWeek || 4) + ',' + csvField(t.status) + ',' + csvField(t.description));
     });
 
     lines.push('\n# TOURNAMENT TEAMS');
@@ -1268,11 +1802,11 @@ function importCSV(file) {
                 teams: [],
                 tournaments: [],
                 activities: [],
-                currentYear: data.currentYear || new Date().getFullYear()
+                currentYear: data.currentYear || new Date().getFullYear(),
+                currentWeek: 1
             };
             var charMap = {};
             var teamMap = {};
-            var tournMap = {};
 
             for (var i = 0; i < lines.length; i++) {
                 var line = lines[i].trim();
@@ -1281,6 +1815,7 @@ function importCSV(file) {
                 if (line.startsWith('# CHARACTERS')) { section = 'characters'; continue; }
                 if (line.startsWith('# TEAMS')) { section = 'teams'; continue; }
                 if (line.startsWith('# TEAM MEMBERS')) { section = 'members'; continue; }
+                if (line.startsWith('# TEAM RANKINGS')) { section = 'rankings'; continue; }
                 if (line.startsWith('# TOURNAMENTS')) { section = 'tournaments'; continue; }
                 if (line.startsWith('# TOURNAMENT TEAMS')) { section = 'tournament_teams'; continue; }
 
@@ -1290,7 +1825,21 @@ function importCSV(file) {
 
                 var values = parseCSVLine(line);
 
-                if (section === 'characters' && values.length >= 17) {
+                if (section === 'characters' && values.length >= 19) {
+                    var careerStatus = [];
+                    if (values[18]) {
+                        var careerParts = values[18].split(';');
+                        careerParts.forEach(function(part) {
+                            var match = part.match(/([^:]+):([^-]+)-(.+)/);
+                            if (match) {
+                                careerStatus.push({
+                                    status: match[1],
+                                    startYear: match[2],
+                                    endYear: match[3] === 'present' ? '' : match[3]
+                                });
+                            }
+                        });
+                    }
                     var char = {
                         id: generateId(),
                         firstName: values[0] || '',
@@ -1310,63 +1859,98 @@ function importCSV(file) {
                         deathYear: values[14] || '',
                         deathCause: values[15] || '',
                         deathAge: values[16] || '',
+                        specialty: values[17] || '',
+                        careerStatus: careerStatus,
+                        eliminatedWeeks: [],
                         createdAt: new Date().toISOString()
                     };
                     newData.characters.push(char);
                     var key = (char.firstName + '|' + char.lastName).toLowerCase();
                     charMap[key] = char;
                 }
-                else if (section === 'teams' && values.length >= 4) {
+                else if (section === 'teams' && values.length >= 7) {
+                    var nameHistory = [];
+                    if (values[6]) {
+                        var nameParts = values[6].split(';');
+                        nameParts.forEach(function(part) {
+                            var match = part.match(/([^:]+):([^-]+)-(.+)/);
+                            if (match) {
+                                nameHistory.push({
+                                    name: match[1],
+                                    startPeriod: match[2],
+                                    endPeriod: match[3] === 'present' ? '' : match[3]
+                                });
+                            }
+                        });
+                    }
                     var team = {
                         id: generateId(),
                         name: values[0] || '',
                         type: values[1] || '',
-                        foundedYear: values[2] || '',
-                        status: values[3] || 'active',
+                        startPeriod: values[2] || '',
+                        endPeriod: values[3] || '',
+                        currentRank: values[4] || '',
+                        status: values[5] || 'active',
+                        nameHistory: nameHistory,
                         members: [],
+                        rankingHistory: [],
                         createdAt: new Date().toISOString()
                     };
                     newData.teams.push(team);
                     teamMap[team.name.toLowerCase()] = team;
                 }
-                else if (section === 'members' && values.length >= 6) {
+                else if (section === 'members' && values.length >= 5) {
                     var teamName = values[0];
-                    var charFirstName = values[1];
-                    var charLastName = values[2];
+                    var charName = values[1];
                     var team = teamMap[teamName.toLowerCase()];
                     if (team) {
-                        var key = (charFirstName + '|' + charLastName).toLowerCase();
-                        var char = charMap[key];
+                        var charKey = charName.toLowerCase();
+                        var char = Object.values(charMap).find(function(c) {
+                            return (c.firstName + ' ' + c.lastName).toLowerCase() === charKey ||
+                                   (c.firstName + ' ' + (c.middleName || '') + ' ' + c.lastName).toLowerCase().trim() === charKey;
+                        });
                         if (char) {
                             team.members.push({
                                 characterId: char.id,
-                                role: values[3] || 'Member',
-                                joinYear: values[4] || '',
-                                leaveYear: values[5] || ''
+                                role: values[2] || 'Member',
+                                joinPeriod: values[3] || '',
+                                leavePeriod: values[4] || ''
                             });
                         }
                     }
                 }
-                else if (section === 'tournaments' && values.length >= 6) {
+                else if (section === 'rankings' && values.length >= 3) {
+                    var teamName = values[0];
+                    var team = teamMap[teamName.toLowerCase()];
+                    if (team) {
+                        if (!team.rankingHistory) team.rankingHistory = [];
+                        team.rankingHistory.push({
+                            period: values[1] || '',
+                            rank: values[2] || ''
+                        });
+                    }
+                }
+                else if (section === 'tournaments' && values.length >= 7) {
                     var tourn = {
                         id: generateId(),
                         name: values[0] || '',
                         academicYear: values[1] || '',
                         startWeek: values[2] || '',
                         endWeek: values[3] || '',
-                        status: values[4] || 'draft',
-                        description: values[5] || '',
+                        eliminationsPerWeek: parseInt(values[4]) || 4,
+                        status: values[5] || 'draft',
+                        description: values[6] || '',
                         teams: [],
                         bracket: [],
+                        eliminations: [],
                         createdAt: new Date().toISOString()
                     };
                     newData.tournaments.push(tourn);
-                    tournMap[tourn.name.toLowerCase()] = tourn;
                 }
                 else if (section === 'tournament_teams' && values.length >= 3) {
                     var tournName = values[0];
                     var teamName = values[1];
-                    var tourn = tournMap[tournName.toLowerCase()];
+                    var tourn = newData.tournaments.find(function(t) { return t.name === tournName; });
                     var team = teamMap[teamName.toLowerCase()];
                     if (tourn && team) {
                         tourn.teams.push({
@@ -1382,11 +1966,7 @@ function importCSV(file) {
                 return;
             }
 
-            data.characters = newData.characters;
-            data.teams = newData.teams;
-            data.tournaments = newData.tournaments;
-            data.activities = newData.activities;
-            data.currentYear = newData.currentYear;
+            data = newData;
             
             saveData().then(function() {
                 logActivity('Imported data from CSV');
@@ -1406,23 +1986,28 @@ function importCSV(file) {
 function exportTemplateCSV() {
     var lines = [
         '# CHARACTERS',
-        'FirstName,MiddleName,LastName,BirthYear,Gender,AssociatedNames,EyeColor,HairColor,SkinColor,Height,Build,AppearanceNotes,Notes,Deceased,DeathYear,DeathCause,DeathAge',
-        'John,,Doe,1990,Male,,Blue,Brown,Fair,5\'10",Athletic,,Example character,false,,,',
-        'Jane,Mary,Smith,1992,Female,The Shadow,Green,Black,Olive,5\'7",Slim,Scar on cheek,,false,,,',
+        'FirstName,MiddleName,LastName,BirthYear,Gender,AssociatedNames,EyeColor,HairColor,SkinColor,Height,Build,AppearanceNotes,Notes,Deceased,DeathYear,DeathCause,DeathAge,Specialty,CareerStatus',
+        'John,,Doe,1990,Male,,Blue,Brown,Fair,5\'10",Athletic,,Example character,false,,,,,',
+        'Jane,Mary,Smith,1992,Female,The Shadow,Green,Black,Olive,5\'7",Slim,Scar on cheek,,false,,,,,trainee:2020-2023;rookie:2023-',
         '',
         '# TEAMS',
-        'TeamName,TeamType,FoundedYear,Status',
-        'Example Team,academic,2020,active',
-        'Another Team,professional,2018,active',
+        'TeamName,TeamType,StartPeriod,EndPeriod,CurrentRank,Status,NameHistory',
+        'Example Team,academic,1,2,1,active,Example Team:1-2',
+        'Another Team,academic,3,4,2,active,Another Team:3-4',
         '',
         '# TEAM MEMBERS',
-        'TeamName,CharacterFirstName,CharacterLastName,Role,JoinYear,LeaveYear',
-        'Example Team,John,Doe,Captain,2020,',
-        'Example Team,Jane,Smith,Member,2021,2023',
+        'TeamName,CharacterName,Role,JoinPeriod,LeavePeriod',
+        'Example Team,John Doe,Captain,1,',
+        'Example Team,Jane Smith,Member,1,',
+        '',
+        '# TEAM RANKINGS',
+        'TeamName,Period,Rank',
+        'Example Team,1,1',
+        'Another Team,3,2',
         '',
         '# TOURNAMENTS',
-        'TournamentName,AcademicYear,StartWeek,EndWeek,Status,Description',
-        'Spring Cup,2025-2026,1,12,active,Annual spring tournament',
+        'TournamentName,AcademicYear,StartWeek,EndWeek,EliminationsPerWeek,Status,Description',
+        'Spring Cup,2025-2026,1,12,4,active,Annual spring tournament',
         '',
         '# TOURNAMENT TEAMS',
         'TournamentName,TeamName,Seed',
@@ -1521,14 +2106,20 @@ function initImportExport() {
         btn.addEventListener('click', exportTemplateCSV);
     });
 
-    // Year setter buttons
     document.querySelectorAll('#set-year-btn').forEach(function(btn) {
         btn.addEventListener('click', showYearModal);
     });
 
-    // Year display click
     document.querySelectorAll('#current-year-display').forEach(function(el) {
         el.addEventListener('click', showYearModal);
+    });
+
+    // Calendar navigation
+    document.querySelectorAll('#prev-week-btn').forEach(function(btn) {
+        btn.addEventListener('click', prevWeek);
+    });
+    document.querySelectorAll('#next-week-btn').forEach(function(btn) {
+        btn.addEventListener('click', nextWeek);
     });
 }
 
@@ -1560,11 +2151,9 @@ function importJSON(file) {
 
             if (!confirm('This will replace all current data. Continue?')) return;
 
-            data.characters = imported.characters || [];
-            data.teams = imported.teams || [];
-            data.tournaments = imported.tournaments || [];
-            data.activities = imported.activities || [];
-            data.currentYear = imported.currentYear || new Date().getFullYear();
+            data = imported;
+            if (!data.currentYear) data.currentYear = new Date().getFullYear();
+            if (!data.currentWeek) data.currentWeek = 1;
             
             saveData().then(function() {
                 logActivity('Imported data from JSON');
@@ -1588,6 +2177,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }).then(function() {
         initImportExport();
 
+        // Set current calendar week from data
+        currentCalendarWeek = data.currentWeek || 1;
+
         var path = window.location.pathname;
         var page = path.split('/').pop() || 'index.html';
 
@@ -1599,12 +2191,12 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('add-character-btn').addEventListener('click', function() { showCharacterForm(); });
             document.getElementById('cancel-char-btn').addEventListener('click', hideCharacterForm);
             document.getElementById('char-form').addEventListener('submit', saveCharacter);
-
-            // Year setter on character page
-            var setYearBtn = document.querySelector('#set-year-btn');
-            if (setYearBtn) {
-                setYearBtn.addEventListener('click', showYearModal);
-            }
+            
+            // Add status button
+            document.getElementById('add-status-btn').addEventListener('click', function() {
+                var container = document.getElementById('career-status-container');
+                addCareerStatusEntry(container);
+            });
 
         } else if (page === 'teams.html') {
             renderTeams();
@@ -1626,6 +2218,19 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('cancel-edit-member').addEventListener('click', closeEditMemberModal);
             document.getElementById('edit-member-form').addEventListener('submit', saveEditMember);
 
+            // Ranking modal
+            document.querySelector('#ranking-modal .close-modal').addEventListener('click', closeRankingModal);
+            document.getElementById('ranking-modal').addEventListener('click', function(e) {
+                if (e.target === this) closeRankingModal();
+            });
+            document.getElementById('add-ranking-btn').addEventListener('click', addRanking);
+            
+            // Name history button
+            document.getElementById('add-name-history-btn').addEventListener('click', function() {
+                var container = document.getElementById('name-history-container');
+                addNameHistoryEntry(container);
+            });
+
         } else if (page === 'tournaments.html') {
             renderTournaments();
 
@@ -1638,6 +2243,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (e.target === this) closeTournamentDetail();
             });
             document.getElementById('add-team-to-tournament').addEventListener('click', addTeamToTournament);
+            
+        } else if (page === 'calendar.html') {
+            renderCalendar();
         }
     }).catch(function(err) {
         console.error('Failed to initialize database:', err);
@@ -1656,3 +2264,5 @@ window.addEventListener('beforeunload', function() {
 window.showYearModal = showYearModal;
 window.setCurrentYear = setCurrentYear;
 window.calculateAge = calculateAge;
+window.prevWeek = prevWeek;
+window.nextWeek = nextWeek;
