@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Manager - Calendar</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>Tournament <span>Manager</span></h1>
+        <nav>
+            <a href="index.html">Dashboard</a>
+            <a href="characters.html">Characters</a>
+            <a href="teams.html">Teams</a>
+            <a href="tournaments.html">Tournaments</a>
+            <a href="calendar.html" class="active">Calendar</a>
+        </nav>
+        <div class="header-actions">
+            <button id="export-json-btn" class="small">Export JSON</button>
+            <button id="import-json-btn" class="small">Import JSON</button>
+            <button id="export-csv-btn" class="small">Export CSV</button>
+            <button id="import-csv-btn" class="small">Import CSV</button>
+            <button id="template-csv-btn" class="small">Template CSV</button>
+            <input type="file" id="json-file-input" accept=".json" style="display:none">
+            <input type="file" id="csv-file-input" accept=".csv" style="display:none">
+        </div>
+    </header>
+
+    <main class="calendar-page">
+        <div class="page-header">
+            <h2>Weekly Calendar</h2>
+            <div class="calendar-nav">
+                <button id="prev-week-btn" class="small">← Prev</button>
+                <span id="current-week-display" style="font-size:1.1rem;font-weight:600;min-width:120px;text-align:center;">Week 1-2</span>
+                <button id="next-week-btn" class="small">Next →</button>
+            </div>
+        </div>
+
+        <div class="calendar-grid">
+            <div class="calendar-section">
+                <h3>Unassigned Characters</h3>
+                <div id="unassigned-characters">
+                    <p class="empty-state">All characters assigned to teams</p>
+                </div>
+            </div>
+
+            <div class="calendar-section">
+                <h3>Eliminated This Week</h3>
+                <div id="eliminated-characters">
+                    <p class="empty-state">No eliminations this week</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="calendar-section">
+            <h3>Team Rankings - <span id="ranking-week-label">Week 1-2</span></h3>
+            <div id="team-rankings">
+                <p class="empty-state">No teams ranked for this week</p>
+            </div>
+        </div>
+
+        <div class="calendar-section">
+            <h3>Teams Active This Week</h3>
+            <div id="active-teams">
+                <p class="empty-state">No teams active this week</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
