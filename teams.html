@@ -16,6 +16,7 @@
             <a href="characters.html">Characters</a>
             <a href="teams.html" class="active">Teams</a>
             <a href="tournaments.html">Tournaments</a>
+            <a href="calendar.html">Calendar</a>
         </nav>
         <div class="header-actions">
             <button id="export-json-btn" class="small">Export JSON</button>
@@ -34,7 +35,6 @@
             <button id="add-team-btn" class="primary">+ Add Team</button>
         </div>
 
-        <!-- Team Form -->
         <div id="team-form" class="form-container hidden">
             <h3 id="team-form-title">Add Team</h3>
             <form id="team-form-inner">
@@ -53,8 +53,16 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Founded Year</label>
-                        <input type="number" id="team-founded" min="1900" max="2026">
+                        <label>Start Week/Year</label>
+                        <input type="number" id="team-start" placeholder="Week or Year">
+                    </div>
+                    <div class="form-group">
+                        <label>End Week/Year</label>
+                        <input type="number" id="team-end" placeholder="Week or Year (optional)">
+                    </div>
+                    <div class="form-group">
+                        <label>Current Ranking</label>
+                        <input type="number" id="team-ranking" placeholder="Rank (e.g., 1, 2, 3...)" min="1">
                     </div>
                     <div class="form-group">
                         <label>Status</label>
@@ -63,6 +71,18 @@
                             <option value="deprecated">Deprecated (history kept)</option>
                             <option value="deleted">Deleted (permanent)</option>
                         </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Name History</label>
+                        <div id="name-history-container">
+                            <div class="name-history-entry">
+                                <input type="text" class="name-history-name" placeholder="Team Name">
+                                <input type="number" class="name-history-start" placeholder="Start Week/Year">
+                                <input type="number" class="name-history-end" placeholder="End Week/Year">
+                                <button type="button" class="small danger remove-name">✕</button>
+                            </div>
+                        </div>
+                        <button type="button" id="add-name-history-btn" class="small" style="margin-top:8px;">+ Add Name Period</button>
                     </div>
                 </div>
                 <div class="form-actions">
@@ -77,8 +97,9 @@
             <div class="list-header">
                 <span>Team Name</span>
                 <span>Type</span>
+                <span>Period</span>
+                <span>Rank</span>
                 <span>Members</span>
-                <span>Status</span>
                 <span>Actions</span>
             </div>
             <div id="teams-container">
@@ -98,9 +119,9 @@
                         <select id="member-character">
                             <option value="">Select character...</option>
                         </select>
-                        <input type="text" id="member-role" placeholder="Role (e.g., Captain)">
-                        <input type="number" id="member-join-year" placeholder="Join Year">
-                        <input type="number" id="member-leave-year" placeholder="Leave Year (optional)">
+                        <input type="text" id="member-role" placeholder="Role">
+                        <input type="number" id="member-join" placeholder="Join Week/Year">
+                        <input type="number" id="member-leave" placeholder="Leave Week/Year">
                         <button id="add-member-btn" class="primary small">Add Member</button>
                     </div>
                     <div id="members-list">
@@ -128,18 +149,38 @@
                             <input type="text" id="edit-member-role">
                         </div>
                         <div class="form-group">
-                            <label>Join Year</label>
-                            <input type="number" id="edit-member-join-year">
+                            <label>Join Week/Year</label>
+                            <input type="number" id="edit-member-join">
                         </div>
                         <div class="form-group">
-                            <label>Leave Year</label>
-                            <input type="number" id="edit-member-leave-year">
+                            <label>Leave Week/Year</label>
+                            <input type="number" id="edit-member-leave">
                         </div>
                         <div class="form-actions">
                             <button type="button" id="cancel-edit-member" class="secondary">Cancel</button>
                             <button type="submit" id="save-edit-member" class="primary">Save Changes</button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ranking History Modal -->
+        <div id="ranking-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="ranking-modal-title">Ranking History</h3>
+                    <button class="close-modal" id="close-ranking-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="ranking-form">
+                        <input type="number" id="ranking-week" placeholder="Week/Year">
+                        <input type="number" id="ranking-rank" placeholder="Rank">
+                        <button id="add-ranking-btn" class="primary small">Add Ranking</button>
+                    </div>
+                    <div id="ranking-list">
+                        <p class="empty-state">No ranking history</p>
+                    </div>
                 </div>
             </div>
         </div>
