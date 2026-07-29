@@ -16,6 +16,7 @@
             <a href="characters.html" class="active">Characters</a>
             <a href="teams.html">Teams</a>
             <a href="tournaments.html">Tournaments</a>
+            <a href="calendar.html">Calendar</a>
         </nav>
         <div class="header-actions">
             <button id="set-year-btn" class="small primary">Set Year</button>
@@ -87,11 +88,37 @@
                         <label>Appearance Notes</label>
                         <textarea id="char-appearance-notes" rows="2" placeholder="Scars, tattoos, distinguishing features..."></textarea>
                     </div>
-                    <div class="form-group full-width">
-                        <label>Background / Notes</label>
-                        <textarea id="char-notes" rows="3" placeholder="Character background, motivations, etc."></textarea>
-                    </div>
                     
+                    <!-- Career Status -->
+                    <div class="form-group full-width" style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
+                        <label>Career Status History</label>
+                        <div id="career-status-container">
+                            <div class="career-status-entry">
+                                <select class="career-status-select">
+                                    <option value="">Select status...</option>
+                                    <option value="civilian">Civilian</option>
+                                    <option value="trainee">Trainee</option>
+                                    <option value="rookie">Rookie</option>
+                                    <option value="junior">Junior</option>
+                                    <option value="senior">Senior</option>
+                                    <option value="instructor">Instructor</option>
+                                    <option value="support">Support</option>
+                                </select>
+                                <input type="number" class="career-start-year" placeholder="Start Year">
+                                <input type="number" class="career-end-year" placeholder="End Year (or leave blank)">
+                                <button type="button" class="small danger remove-status">✕</button>
+                            </div>
+                        </div>
+                        <button type="button" id="add-status-btn" class="small" style="margin-top:8px;">+ Add Status</button>
+                        
+                        <!-- Support/Instructor specialty field -->
+                        <div id="specialty-field" style="display:none;margin-top:8px;">
+                            <label>Specialty/Discipline</label>
+                            <input type="text" id="char-specialty" placeholder="e.g., Medical, Technical, Combat Training">
+                        </div>
+                    </div>
+
+                    <!-- Death Section -->
                     <div class="form-group full-width" style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
                         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
                             <input type="checkbox" id="char-deceased" style="width:auto;">
@@ -114,6 +141,11 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <div class="form-group full-width">
+                        <label>Background / Notes</label>
+                        <textarea id="char-notes" rows="3" placeholder="Character background, motivations, etc."></textarea>
+                    </div>
                 </div>
                 <div class="form-actions">
                     <button type="button" id="cancel-char-btn" class="secondary">Cancel</button>
@@ -126,8 +158,8 @@
             <div class="list-header">
                 <span>Name</span>
                 <span>Age</span>
-                <span>Birth Year</span>
-                <span>Appearance</span>
+                <span>Status</span>
+                <span>Teams</span>
                 <span>Actions</span>
             </div>
             <div id="characters-container">
