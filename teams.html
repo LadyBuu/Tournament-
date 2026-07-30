@@ -63,6 +63,7 @@
                     <div class="form-group">
                         <label>Current Ranking</label>
                         <input type="number" id="team-ranking" placeholder="Rank (e.g., 1, 2, 3...)" min="1">
+                        <span style="font-size:0.7rem;color:var(--text-dim);">For academic teams: ranking applies to the current 2-week block</span>
                     </div>
                     <div class="form-group">
                         <label>Status</label>
@@ -174,8 +175,9 @@
                 </div>
                 <div class="modal-body">
                     <div class="ranking-form">
-                        <input type="number" id="ranking-week" placeholder="Week/Year">
-                        <input type="number" id="ranking-rank" placeholder="Rank">
+                        <input type="number" id="ranking-week" placeholder="Week Block (1, 3, 5...)" min="1">
+                        <span style="font-size:0.7rem;color:var(--text-dim);">For academic: enter the starting week (1=weeks 1-2, 3=weeks 3-4, etc.)</span>
+                        <input type="number" id="ranking-rank" placeholder="Rank" min="1">
                         <button id="add-ranking-btn" class="primary small">Add Ranking</button>
                     </div>
                     <div id="ranking-list">
