@@ -391,9 +391,10 @@ main {
 }
 
 /* ---- Lists ---- */
-.list-header {
+#character-list .list-header,
+#team-list .list-header,
+#tournament-list .list-header {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
   gap: 12px;
   padding: 10px 16px;
   background: var(--panel-alt);
@@ -407,9 +408,22 @@ main {
   letter-spacing: .05em;
 }
 
-.list-item {
+#character-list .list-header {
+  grid-template-columns: 2fr 1fr 1fr 1fr 1.2fr;
+}
+
+#team-list .list-header {
+  grid-template-columns: 1.5fr 1fr 1.2fr 1fr 0.8fr 1.2fr;
+}
+
+#tournament-list .list-header {
+  grid-template-columns: 1.5fr 1fr 1fr 0.8fr 1fr 1.2fr;
+}
+
+#character-list .list-item,
+#team-list .list-item,
+#tournament-list .list-item {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
   gap: 12px;
   padding: 10px 16px;
   background: var(--panel);
@@ -418,7 +432,21 @@ main {
   align-items: center;
 }
 
-.list-item:last-child {
+#character-list .list-item {
+  grid-template-columns: 2fr 1fr 1fr 1fr 1.2fr;
+}
+
+#team-list .list-item {
+  grid-template-columns: 1.5fr 1fr 1.2fr 1fr 0.8fr 1.2fr;
+}
+
+#tournament-list .list-item {
+  grid-template-columns: 1.5fr 1fr 1fr 0.8fr 1fr 1.2fr;
+}
+
+#character-list .list-item:last-child,
+#team-list .list-item:last-child,
+#tournament-list .list-item:last-child {
   border-radius: 0 0 var(--radius) var(--radius);
 }
 
@@ -640,57 +668,76 @@ main {
   margin-bottom: 4px;
 }
 
-/* ---- Calendar ---- */
-.calendar-nav {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.calendar-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 24px;
-}
-
-.calendar-section {
-  background: var(--panel);
-  border: 1px solid var(--border);
+/* ---- Elimination Management ---- */
+#elimination-section {
+  margin: 16px 0;
+  padding: 16px;
+  background: var(--panel-alt);
   border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
 }
 
-.calendar-section h3 {
-  font-size: 1.1rem;
+#elimination-section h4 {
   color: var(--accent);
   margin-bottom: 12px;
 }
 
-.calendar-section .empty-state {
-  padding: 20px;
+.elimination-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.team-ranking-item {
+.elimination-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.elimination-form label {
+  font-size: .78rem;
+  color: var(--text-dim);
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.elimination-form input,
+.elimination-form select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: .8rem;
+  font-family: 'Inter', sans-serif;
+  min-width: 80px;
+}
+
+.elimination-form select {
+  min-width: 200px;
+  flex: 1;
+}
+
+.elimination-form input:focus,
+.elimination-form select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+#elimination-list .elimination-entry {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 6px 12px;
-  background: var(--panel-alt);
+  background: var(--bg);
   border-radius: 6px;
   margin-bottom: 4px;
+  border-left: 3px solid var(--danger);
 }
 
-.team-ranking-item .rank {
-  font-weight: 700;
-  color: var(--accent);
-  min-width: 40px;
-}
-
-.team-ranking-item .team-name {
-  flex: 1;
-  padding: 0 12px;
+#elimination-list .elimination-entry span {
+  font-size: .85rem;
 }
 
 /* ---- Tournament Bracket ---- */
@@ -732,6 +779,12 @@ main {
   padding: 2px 0;
 }
 
+.bracket-match .team.eliminated {
+  color: var(--danger);
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
 .bracket-match .team.winner {
   color: var(--accent);
   font-weight: 600;
@@ -771,6 +824,63 @@ main {
   margin-bottom: 4px;
 }
 
+/* ---- Calendar ---- */
+.calendar-nav {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.calendar-section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.calendar-section h3 {
+  font-size: 1.1rem;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.calendar-section .empty-state {
+  padding: 20px;
+}
+
+.team-ranking-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--panel-alt);
+  border-radius: 6px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.team-ranking-item .rank {
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 40px;
+}
+
+.team-ranking-item .team-name {
+  flex: 1;
+  padding: 0 12px;
+  min-width: 100px;
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 760px) {
   header {
@@ -806,19 +916,41 @@ main {
     grid-template-columns: 1fr;
   }
 
-  .list-header,
-  .list-item {
+  #character-list .list-header,
+  #character-list .list-item {
     grid-template-columns: 1fr 1fr;
     gap: 8px;
     font-size: .75rem;
   }
 
-  .list-header span:nth-child(3),
-  .list-header span:nth-child(4),
-  .list-header span:nth-child(5),
-  .list-item>*:nth-child(3),
-  .list-item>*:nth-child(4),
-  .list-item>*:nth-child(5) {
+  #character-list .list-header span:nth-child(3),
+  #character-list .list-header span:nth-child(4),
+  #character-list .list-item>*:nth-child(3),
+  #character-list .list-item>*:nth-child(4) {
+    display: none;
+  }
+
+  #team-list .list-header,
+  #team-list .list-item,
+  #tournament-list .list-header,
+  #tournament-list .list-item {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    font-size: .75rem;
+  }
+
+  #team-list .list-header span:nth-child(3),
+  #team-list .list-header span:nth-child(4),
+  #team-list .list-header span:nth-child(5),
+  #team-list .list-item>*:nth-child(3),
+  #team-list .list-item>*:nth-child(4),
+  #team-list .list-item>*:nth-child(5),
+  #tournament-list .list-header span:nth-child(3),
+  #tournament-list .list-header span:nth-child(4),
+  #tournament-list .list-header span:nth-child(5),
+  #tournament-list .list-item>*:nth-child(3),
+  #tournament-list .list-item>*:nth-child(4),
+  #tournament-list .list-item>*:nth-child(5) {
     display: none;
   }
 
@@ -862,5 +994,14 @@ main {
   .career-status-entry input,
   .name-history-entry input {
     width: 100%;
+  }
+
+  .elimination-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .elimination-form select {
+    min-width: unset;
   }
 }
