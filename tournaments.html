@@ -31,7 +31,7 @@
 
     <main class="tournaments-page">
         <div class="page-header">
-            <h2>Academic Tournaments</h2>
+            <h2>Tournaments</h2>
             <button id="add-tournament-btn" class="primary">+ Create Tournament</button>
         </div>
 
@@ -42,6 +42,13 @@
                     <div class="form-group">
                         <label>Tournament Name *</label>
                         <input type="text" id="tournament-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Tournament Mode *</label>
+                        <select id="tournament-mode" required>
+                            <option value="team">Team Tournament</option>
+                            <option value="single">Single Player Tournament</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Academic Year</label>
@@ -56,7 +63,7 @@
                         <input type="number" id="tournament-end-week" min="1" max="52">
                     </div>
                     <div class="form-group">
-                        <label>Eliminations per Week</label>
+                        <label>Eliminations per Round</label>
                         <input type="number" id="tournament-eliminations" value="4" min="1">
                     </div>
                     <div class="form-group full-width">
@@ -74,9 +81,9 @@
         <div id="tournament-list">
             <div class="list-header">
                 <span>Tournament</span>
-                <span>Academic Year</span>
+                <span>Mode</span>
                 <span>Weeks</span>
-                <span>Teams</span>
+                <span>Participants</span>
                 <span>Status</span>
                 <span>Actions</span>
             </div>
@@ -85,7 +92,6 @@
             </div>
         </div>
 
-        <!-- Tournament Detail Modal -->
         <div id="tournament-detail-modal" class="modal hidden">
             <div class="modal-content wide">
                 <div class="modal-header">
@@ -95,16 +101,61 @@
                 <div class="modal-body">
                     <div id="tournament-info"></div>
                     
-                    <!-- Elimination Management -->
+                    <div id="participants-section">
+                        <h4>Participants</h4>
+                        <div class="participants-controls">
+                            <div class="participants-form">
+                                <select id="participant-select">
+                                    <option value="">Select participant...</option>
+                                </select>
+                                <button id="add-participant-btn" class="primary small">Add</button>
+                            </div>
+                        </div>
+                        <div id="participants-list">
+                            <p class="empty-state">No participants added</p>
+                        </div>
+                    </div>
+
+                    <div class="team-selection">
+                        <h4>Add Teams</h4>
+                        <select id="tournament-team-select">
+                            <option value="">Select academic team...</option>
+                        </select>
+                        <button id="add-team-to-tournament" class="primary small">Add Team</button>
+                    </div>
+                    <div id="tournament-teams-list"></div>
+
+                    <div id="matches-section">
+                        <h4>Matches</h4>
+                        <div class="matches-controls">
+                            <div class="match-form">
+                                <label>Round:</label>
+                                <input type="number" id="match-round" placeholder="Round" min="1">
+                                <label>Participants:</label>
+                                <select id="match-participant1">
+                                    <option value="">Select...</option>
+                                </select>
+                                <span>vs</span>
+                                <select id="match-participant2">
+                                    <option value="">Select...</option>
+                                </select>
+                                <button id="add-match-btn" class="primary small">Add Match</button>
+                            </div>
+                        </div>
+                        <div id="matches-list">
+                            <p class="empty-state">No matches created</p>
+                        </div>
+                    </div>
+
                     <div id="elimination-section">
                         <h4>Elimination Management</h4>
                         <div class="elimination-controls">
                             <div class="elimination-form">
-                                <label>Week:</label>
-                                <input type="number" id="elim-week" placeholder="Week" min="1" max="52">
-                                <label>Characters Eliminated:</label>
+                                <label>Week Block:</label>
+                                <input type="number" id="elim-week" placeholder="Week (1, 3, 5...)" min="1" max="52">
+                                <label>Eliminated:</label>
                                 <select id="elim-characters" multiple style="min-height:100px;">
-                                    <option value="">Select characters to eliminate...</option>
+                                    <option value="">Select participants to eliminate...</option>
                                 </select>
                                 <button id="add-elimination-btn" class="primary small">Add Elimination</button>
                                 <button id="remove-elimination-btn" class="danger small">Remove Selected</button>
@@ -115,21 +166,10 @@
                         </div>
                     </div>
 
-                    <!-- Tournament Bracket -->
                     <div id="tournament-bracket">
                         <h4>Tournament Bracket</h4>
                         <div id="bracket-container"></div>
                     </div>
-                    
-                    <!-- Team Management -->
-                    <div class="team-selection">
-                        <h4>Add Teams</h4>
-                        <select id="tournament-team-select">
-                            <option value="">Select academic team...</option>
-                        </select>
-                        <button id="add-team-to-tournament" class="primary small">Add Team</button>
-                    </div>
-                    <div id="tournament-teams-list"></div>
                 </div>
             </div>
         </div>
