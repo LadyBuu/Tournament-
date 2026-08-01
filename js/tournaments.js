@@ -433,6 +433,7 @@ function restoreTeam(tournId, teamId) {
     viewTournament(tournId);
 }
 
+// ---- Matches Management ----
 function renderMatches(tourn) {
     var container = document.getElementById('matches-list');
     if (!tourn.matches || tourn.matches.length === 0) {
@@ -553,6 +554,7 @@ function setMatchWinner(tournId, matchIndex, participantNum) {
     viewTournament(tournId);
 }
 
+// ---- Elimination Management ----
 function renderEliminations(tourn) {
     var container = document.getElementById('elimination-list');
     if (!tourn.eliminations || tourn.eliminations.length === 0) {
@@ -672,6 +674,7 @@ function removeElimination(tournId, index) {
     viewTournament(tournId);
 }
 
+// ---- Bracket Rendering ----
 function renderBracket(tourn) {
     var container = document.getElementById('bracket-container');
     
@@ -778,6 +781,7 @@ function renderBracket(tourn) {
     container.innerHTML = html;
 }
 
+// ---- Populate Selects ----
 function populateParticipantSelects(tourn) {
     var select1 = document.getElementById('match-participant1');
     var select2 = document.getElementById('match-participant2');
@@ -815,25 +819,58 @@ function populateParticipantSelects(tourn) {
             participantSelect.appendChild(optionP);
         });
     } else {
-        var activeTeams = getActiveTeamsForWeek(currentWeek, tourn.id);
-        activeTeams.forEach(function(team) {
-            if (tourn.participants && tourn.participants.some(function(p) { 
-                return p.id === team.id && p.type === 'team'; 
-            })) return;
-            
+        // Team mode - get teams in the tournament
+        var teamsInTournament = [];
+        
+        // Get from tourn.teams
+        if (tourn.teams) {
+            tourn.teams.forEach(function(teamEntry) {
+                var team = data.teams.find(function(t) { return t.id === teamEntry.teamId; });
+                if (team) {
+                    teamsInTournament.push({
+                        id: team.id,
+                        name: team.name,
+                        rank: team.currentRank
+                    });
+                }
+            });
+        }
+        
+        // Get from participants if not already in teams
+        if (tourn.participants) {
+            tourn.participants.forEach(function(participant) {
+                if (participant.type === 'team') {
+                    var team = data.teams.find(function(t) { return t.id === participant.id; });
+                    if (team && !teamsInTournament.some(function(t) { return t.id === team.id; })) {
+                        teamsInTournament.push({
+                            id: team.id,
+                            name: team.name,
+                            rank: team.currentRank
+                        });
+                    }
+                }
+            });
+        }
+        
+        // Sort alphabetically
+        teamsInTournament.sort(function(a, b) {
+            return a.name.localeCompare(b.name);
+        });
+        
+        teamsInTournament.forEach(function(team) {
             var option1 = document.createElement('option');
             option1.value = 'team_' + team.id;
-            option1.textContent = team.name + (team.currentRank ? ' (#' + team.currentRank + ')' : '');
+            option1.textContent = team.name + (team.rank ? ' (#' + team.rank + ')' : '');
             select1.appendChild(option1);
             
             var option2 = document.createElement('option');
             option2.value = 'team_' + team.id;
-            option2.textContent = team.name + (team.currentRank ? ' (#' + team.currentRank + ')' : '');
+            option2.textContent = team.name + (team.rank ? ' (#' + team.rank + ')' : '');
             select2.appendChild(option2);
             
             var optionP = document.createElement('option');
             optionP.value = 'team_' + team.id;
-            optionP.textContent = team.name + (team.currentRank ? ' (#' + team.currentRank + ')' : '');
+            optionP.textContent = team.name + (team.rank ? ' (#' + team.rank + ')' : '');
             participantSelect.appendChild(optionP);
         });
     }
