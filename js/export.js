@@ -171,7 +171,6 @@ function importCSV(file) {
                 var values = parseCSVLine(line);
                 
                 if (section === 'characters' && values.length >= 19) {
-                    // Character import logic
                     var careerStatus = [];
                     if (values[18]) {
                         var careerParts = values[18].split(';');
@@ -214,7 +213,6 @@ function importCSV(file) {
                     var key = (char.firstName + '|' + char.lastName).toLowerCase();
                     charMap[key] = char;
                 } else if (section === 'teams' && values.length >= 7) {
-                    // Team import logic
                     var nameHistory = [];
                     if (values[6]) {
                         var nameParts = values[6].split(';');
@@ -245,7 +243,6 @@ function importCSV(file) {
                     newData.teams.push(team);
                     teamMap[team.name.toLowerCase()] = team;
                 } else if (section === 'members' && values.length >= 5) {
-                    // Member import logic
                     var teamName = values[0];
                     var charName = values[1];
                     var team = teamMap[teamName.toLowerCase()];
@@ -265,7 +262,6 @@ function importCSV(file) {
                         }
                     }
                 } else if (section === 'rankings' && values.length >= 3) {
-                    // Ranking import logic
                     var teamName = values[0];
                     var team = teamMap[teamName.toLowerCase()];
                     if (team) {
@@ -273,7 +269,6 @@ function importCSV(file) {
                         team.rankingHistory.push({ period: values[1] || '', rank: values[2] || '' });
                     }
                 } else if (section === 'tournaments' && values.length >= 8) {
-                    // Tournament import logic
                     var tourn = { 
                         id: generateId(), 
                         name: values[0] || '', 
@@ -293,7 +288,6 @@ function importCSV(file) {
                     };
                     newData.tournaments.push(tourn);
                 } else if (section === 'tournament_teams' && values.length >= 3) {
-                    // Tournament teams import logic
                     var tournName = values[0];
                     var teamName = values[1];
                     var tourn = newData.tournaments.find(function(t) { return t.name === tournName; });
@@ -306,24 +300,20 @@ function importCSV(file) {
                         }
                     }
                 } else if (section === 'tournament_matches' && values.length >= 5) {
-                    // Tournament matches import logic
                     var tournName = values[0];
                     var tourn = newData.tournaments.find(function(t) { return t.name === tournName; });
                     if (tourn) {
-                        // Find participants by name
                         var p1Name = values[2];
                         var p2Name = values[3];
                         var winnerName = values[4];
                         
                         var findParticipant = function(name) {
                             if (!name) return null;
-                            // Try to find as character
                             var char = newData.characters.find(function(c) {
                                 var fullName = [c.firstName, c.middleName, c.lastName].filter(function(n) { return n; }).join(' ');
                                 return fullName === name;
                             });
                             if (char) return { type: 'char', id: char.id };
-                            // Try to find as team
                             var team = newData.teams.find(function(t) { return t.name === name; });
                             if (team) return { type: 'team', id: team.id };
                             return null;
@@ -344,12 +334,10 @@ function importCSV(file) {
                         }
                     }
                 } else if (section === 'tournament_eliminations' && values.length >= 4) {
-                    // Tournament eliminations import logic
                     var tournName = values[0];
                     var tourn = newData.tournaments.find(function(t) { return t.name === tournName; });
                     if (tourn) {
                         var name = values[1];
-                        // Find participant
                         var char = newData.characters.find(function(c) {
                             var fullName = [c.firstName, c.middleName, c.lastName].filter(function(n) { return n; }).join(' ');
                             return fullName === name;
