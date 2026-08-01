@@ -66,17 +66,49 @@ function getCharacterTeamCount(charId) {
     return count || '-';
 }
 
+// ---- Get Participant Name (FIXED) ----
 function getParticipantName(participant, tourn) {
     if (!participant) return 'Unknown';
-    if (participant.type === 'char') {
-        var char = data.characters.find(function(c) { return c.id === participant.id; });
-        return char ? [char.firstName, char.middleName, char.lastName].filter(function(n) { return n; }).join(' ') : 'Unknown';
-    } else {
-        var team = data.teams.find(function(t) { return t.id === participant.id; });
-        return team ? team.name : 'Unknown team';
+    
+    // Handle string participant (legacy format)
+    if (typeof participant === 'string') {
+        // Check if it's a team name
+        var team = data.teams.find(function(t) { return t.name === participant; });
+        if (team) return team.name;
+        // Check if it's a character name
+        var char = data.characters.find(function(c) { 
+            var fullName = [c.firstName, c.middleName, c.lastName].filter(function(n) { return n; }).join(' ');
+            return fullName === participant;
+        });
+        if (char) return [char.firstName, char.middleName, char.lastName].filter(function(n) { return n; }).join(' ');
+        return participant;
     }
+    
+    // Handle object participant
+    if (participant.type === 'char') {
+        var char = data.characters.find(function(c) { return String(c.id) === String(participant.id); });
+        if (char) {
+            return [char.firstName, char.middleName, char.lastName].filter(function(n) { return n; }).join(' ');
+        }
+        return 'Unknown Character';
+    } else if (participant.type === 'team') {
+        // Find by ID - convert both to strings for comparison
+        var team = data.teams.find(function(t) { 
+            return String(t.id) === String(participant.id); 
+        });
+        if (team) {
+            return team.name;
+        }
+        // If not found by ID, try by string ID (legacy)
+        var teamById = data.teams.find(function(t) { return String(t.id) === String(participant.id); });
+        if (teamById) return teamById.name;
+        return 'Unknown Team';
+    }
+    
+    return 'Unknown';
 }
 
+// ---- Get Active Teams for Week ----
 function getActiveTeamsForWeek(week, excludeTournamentId) {
     var weekNum = parseInt(week);
     if (isNaN(weekNum)) weekNum = 1;
