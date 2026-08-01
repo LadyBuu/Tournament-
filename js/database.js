@@ -39,7 +39,6 @@ function loadDataInternal() {
                     data = result.data;
                     if (!data.currentYear) data.currentYear = new Date().getFullYear();
                     if (!data.currentWeek) data.currentWeek = 1;
-                    // Migrate data
                     migrateData();
                     resolve(data);
                 } else {
@@ -98,7 +97,6 @@ function saveData() {
 
 // ---- Data Migration ----
 function migrateData() {
-    // Character migration
     data.characters.forEach(function(char) {
         if (char.deceased === undefined) char.deceased = false;
         if (char.deathYear === undefined) char.deathYear = '';
@@ -109,7 +107,6 @@ function migrateData() {
         if (char.eliminatedWeeks === undefined) char.eliminatedWeeks = [];
     });
     
-    // Team migration
     data.teams.forEach(function(team) {
         if (team.nameHistory === undefined) team.nameHistory = [];
         if (team.rankingHistory === undefined) team.rankingHistory = [];
@@ -119,7 +116,6 @@ function migrateData() {
         if (team.endPeriod === undefined) team.endPeriod = '';
     });
     
-    // Tournament migration
     data.tournaments.forEach(function(tourn) {
         if (tourn.eliminations === undefined) tourn.eliminations = [];
         if (tourn.eliminationsPerRound === undefined) tourn.eliminationsPerRound = 4;
