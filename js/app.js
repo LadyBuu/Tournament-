@@ -2,7 +2,6 @@
 // app.js - Tournament Manager Main Entry Point
 // ============================================================
 
-// ---- Global References ----
 var data = {
     characters: [],
     teams: [],
@@ -17,7 +16,6 @@ var currentCalendarWeek = 1;
 var currentFilterWeek = 1;
 var expandedTeamId = null;
 
-// ---- Initialize ----
 document.addEventListener('DOMContentLoaded', function() {
     openDatabase().then(function() { 
         return loadData(); 
@@ -43,6 +41,9 @@ document.addEventListener('DOMContentLoaded', function() {
             initTournamentEvents();
         } else if (page === 'calendar.html') {
             renderCalendar();
+        } else if (page === 'weekly.html') {
+            renderWeeklyView();
+            initWeeklyEvents();
         }
     }).catch(function(err) {
         console.error('Failed to initialize database:', err);
@@ -50,14 +51,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Save on page unload
 window.addEventListener('beforeunload', function() {
     saveData().catch(function(err) {
         console.warn('Failed to save on unload:', err);
     });
 });
 
-// ---- Expose Global Functions ----
 window.showYearModal = showYearModal;
 window.setCurrentYear = setCurrentYear;
 window.calculateAge = calculateAge;
@@ -66,7 +65,6 @@ window.nextWeek = nextWeek;
 window.showWeekModal = showWeekModal;
 
 function initEventListeners() {
-    // Year setter buttons
     document.querySelectorAll('#set-year-btn').forEach(function(btn) {
         btn.addEventListener('click', showYearModal);
     });
@@ -74,7 +72,6 @@ function initEventListeners() {
         el.addEventListener('click', showYearModal);
     });
     
-    // Calendar navigation
     document.querySelectorAll('#prev-week-btn').forEach(function(btn) {
         btn.addEventListener('click', prevWeek);
     });
