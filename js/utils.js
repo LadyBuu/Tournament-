@@ -151,6 +151,8 @@ function renderAll() {
         renderTournaments();
     } else if (page === 'calendar.html') {
         renderCalendar();
+    } else if (page === 'weekly.html') {
+        renderWeeklyView();
     }
 }
 
