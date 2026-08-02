@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curriculum Manager - Ranking</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>📚 Curriculum <span>Manager</span></h1>
+        <nav>
+            <a href="index.html">Dashboard</a>
+            <a href="../characters.html">Characters</a>
+            <a href="disciplines.html">Disciplines</a>
+            <a href="calendar.html">Calendar</a>
+            <a href="grades.html">Grades</a>
+            <a href="ranking.html" class="active">Ranking</a>
+            <a href="../index.html" class="tournament-link">🏆 Tournament</a>
+        </nav>
+        <div class="header-actions">
+            <button id="export-json-btn" class="small">Export JSON</button>
+            <button id="import-json-btn" class="small">Import JSON</button>
+            <button id="export-csv-btn" class="small">Export CSV</button>
+            <button id="import-csv-btn" class="small">Import CSV</button>
+            <button id="template-csv-btn" class="small">Template CSV</button>
+            <input type="file" id="json-file-input" accept=".json" style="display:none">
+            <input type="file" id="csv-file-input" accept=".csv" style="display:none">
+        </div>
+    </header>
+
+    <main class="ranking-page">
+        <div class="page-header">
+            <h2>Student Ranking</h2>
+            <div class="ranking-controls">
+                <div class="week-nav">
+                    <button id="prev-rank-week" class="small">← Prev</button>
+                    <span id="rank-week-display" style="font-weight:600;min-width:80px;text-align:center;">Week 1</span>
+                    <button id="next-rank-week" class="small">Next →</button>
+                </div>
+                <button id="auto-rank-btn" class="small primary">Auto-Rank</button>
+            </div>
+        </div>
+
+        <div id="ranking-container">
+            <p class="empty-state">No ranking data available for this week</p>
+        </div>
+    </main>
+
+    <script src="../js/database.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="js/curriculum-app.js"></script>
+    <script src="js/disciplines.js"></script>
+    <script src="js/calendar.js"></script>
+    <script src="js/grades.js"></script>
+    <script src="js/ranking.js"></script>
+    <script src="js/export.js"></script>
+</body>
+</html>
