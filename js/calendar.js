@@ -83,16 +83,21 @@ function renderEliminatedCharacters() {
             tourn.eliminations.forEach(function(elim) {
                 var week = parseInt(elim.week);
                 if (!isNaN(week) && week >= weekStart && week <= weekEnd) {
-                    var name = getParticipantName({ type: elim.participantType, id: elim.participantId }, tourn);
+                    // Build participant object to pass to getParticipantName
+                    var participant = { 
+                        type: elim.participantType, 
+                        id: elim.participantId 
+                    };
+                    var name = getParticipantName(participant, tourn);
                     var teamName = '';
                     
                     if (elim.participantType === 'char') {
-                        var char = data.characters.find(function(c) { return c.id === elim.participantId; });
+                        var char = data.characters.find(function(c) { return String(c.id) === String(elim.participantId); });
                         if (char) {
                             data.teams.forEach(function(team) {
                                 if (team.members) {
                                     team.members.forEach(function(member) {
-                                        if (member.characterId === char.id) {
+                                        if (String(member.characterId) === String(char.id)) {
                                             var join = parseInt(member.joinPeriod);
                                             var leave = parseInt(member.leavePeriod);
                                             if (!isNaN(join) && join <= weekEnd && (isNaN(leave) || leave >= weekStart)) {
@@ -292,10 +297,10 @@ function renderTournamentTeams() {
             if (tourn.teams && tourn.teams.length > 0) {
                 html += '<div class="tournament-teams-list">';
                 tourn.teams.forEach(function(teamEntry) {
-                    var team = data.teams.find(function(t) { return t.id === teamEntry.teamId; });
+                    var team = data.teams.find(function(t) { return String(t.id) === String(teamEntry.teamId); });
                     if (team) {
                         var isEliminated = tourn.eliminations && tourn.eliminations.some(function(e) {
-                            return e.participantId === team.id && e.participantType === 'team';
+                            return String(e.participantId) === String(team.id) && e.participantType === 'team';
                         });
                         html += '<div class="tournament-team-item' + (isEliminated ? ' eliminated' : '') + '">' +
                             team.name + (isEliminated ? ' 💀' : '') +
@@ -333,7 +338,7 @@ function renderTournamentTeams() {
                 tourn.participants.forEach(function(participant) {
                     var name = getParticipantName(participant, tourn);
                     var isEliminated = tourn.eliminations && tourn.eliminations.some(function(e) {
-                        return e.participantId === participant.id && e.participantType === participant.type;
+                        return String(e.participantId) === String(participant.id) && e.participantType === participant.type;
                     });
                     html += '<div class="tournament-team-item' + (isEliminated ? ' eliminated' : '') + '">' +
                         name + (isEliminated ? ' 💀' : '') +
