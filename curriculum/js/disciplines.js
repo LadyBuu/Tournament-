@@ -6,14 +6,19 @@ function renderDisciplines() {
     var container = document.getElementById('disciplines-container');
     if (!container) return;
     
-    if (!window.curriculumData || window.curriculumData.disciplines.length === 0) {
+    // Ensure curriculumData exists
+    if (!window.curriculumData) {
+        window.curriculumData = { disciplines: [], schedules: {}, restDays: {}, examDays: {}, grades: {}, rankings: {}, currentWeek: 1 };
+    }
+    
+    if (window.curriculumData.disciplines.length === 0) {
         container.innerHTML = '<p class="empty-state">No disciplines created yet. Add your first discipline!</p>';
         return;
     }
     
     var html = '';
     window.curriculumData.disciplines.forEach(function(d) {
-        var instructor = data.characters.find(function(c) { return String(c.id) === String(d.instructorId); });
+        var instructor = data.characters ? data.characters.find(function(c) { return String(c.id) === String(d.instructorId); }) : null;
         var instructorName = instructor ? [instructor.firstName, instructor.lastName].filter(function(n) { return n; }).join(' ') : 'Not assigned';
         var weekDisplay = d.startWeek ? 'Wk ' + d.startWeek : '?';
         if (d.endWeek) weekDisplay += ' - Wk ' + d.endWeek;
@@ -41,23 +46,34 @@ function renderDisciplines() {
 }
 
 function showDisciplineForm(editId) {
+    console.log('showDisciplineForm called', editId);
     var form = document.getElementById('discipline-form');
+    if (!form) {
+        console.error('Discipline form not found');
+        return;
+    }
+    
     var title = document.getElementById('discipline-form-title');
     var formElement = document.getElementById('discipline-form-inner');
     
     form.classList.remove('hidden');
+    form.style.display = 'block';
     
     // Populate instructors
     var select = document.getElementById('discipline-instructor');
-    select.innerHTML = '<option value="">Select instructor...</option>';
-    var instructors = getInstructors();
-    instructors.forEach(function(instructor) {
-        var name = [instructor.firstName, instructor.lastName].filter(function(n) { return n; }).join(' ');
-        var option = document.createElement('option');
-        option.value = instructor.id;
-        option.textContent = name;
-        select.appendChild(option);
-    });
+    if (select) {
+        select.innerHTML = '<option value="">Select instructor...</option>';
+        var instructors = getInstructors();
+        if (instructors && instructors.length > 0) {
+            instructors.forEach(function(instructor) {
+                var name = [instructor.firstName, instructor.lastName].filter(function(n) { return n; }).join(' ');
+                var option = document.createElement('option');
+                option.value = instructor.id;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+        }
+    }
     
     if (editId) {
         title.textContent = 'Edit Discipline';
@@ -68,7 +84,7 @@ function showDisciplineForm(editId) {
             document.getElementById('discipline-start-week').value = discipline.startWeek || '';
             document.getElementById('discipline-end-week').value = discipline.endWeek || '';
             document.getElementById('discipline-hours').value = discipline.weeklyHours || '';
-            document.getElementById('discipline-instructor').value = discipline.instructorId || '';
+            if (select) select.value = discipline.instructorId || '';
             document.getElementById('discipline-students').value = discipline.maxStudents || '';
             document.getElementById('discipline-weight').value = discipline.weight || 1;
             
@@ -115,7 +131,11 @@ function addGradingEntry(container, letter, min, max) {
 }
 
 function hideDisciplineForm() {
-    document.getElementById('discipline-form').classList.add('hidden');
+    var form = document.getElementById('discipline-form');
+    if (form) {
+        form.classList.add('hidden');
+        form.style.display = 'none';
+    }
 }
 
 function saveDiscipline(e) {
@@ -148,6 +168,10 @@ function saveDiscipline(e) {
     };
     
     if (!disciplineData.name) { alert('Discipline name is required.'); return; }
+    
+    if (!window.curriculumData) {
+        window.curriculumData = { disciplines: [], schedules: {}, restDays: {}, examDays: {}, grades: {}, rankings: {}, currentWeek: 1 };
+    }
     
     if (editId) {
         var index = window.curriculumData.disciplines.findIndex(function(d) { return String(d.id) === String(editId); });
@@ -209,11 +233,45 @@ function deleteDiscipline(id) {
 }
 
 function initDisciplineEvents() {
-    document.getElementById('add-discipline-btn').addEventListener('click', function() { showDisciplineForm(); });
-    document.getElementById('cancel-discipline-btn').addEventListener('click', hideDisciplineForm);
-    document.getElementById('discipline-form-inner').addEventListener('submit', saveDiscipline);
-    document.getElementById('add-grading-btn').addEventListener('click', function() {
-        var container = document.getElementById('grading-system-container');
-        addGradingEntry(container);
+    console.log('initDisciplineEvents called');
+    var addBtn = document.getElementById('add-discipline-btn');
+    if (addBtn) {
+        addBtn.addEventListener('click', function(e) {
+            console.log('Add discipline button clicked');
+            showDisciplineForm();
+        });
+    } else {
+        console.error('Add discipline button not found');
+    }
+    
+    var cancelBtn = document.getElementById('cancel-discipline-btn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', hideDisciplineForm);
+    }
+    
+    var form = document.getElementById('discipline-form-inner');
+    if (form) {
+        form.addEventListener('submit', saveDiscipline);
+    }
+    
+    var addGradingBtn = document.getElementById('add-grading-btn');
+    if (addGradingBtn) {
+        addGradingBtn.addEventListener('click', function() {
+            var container = document.getElementById('grading-system-container');
+            if (container) addGradingEntry(container);
+        });
+    }
+}
+
+// Make sure events are initialized when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.location.pathname.indexOf('disciplines.html') !== -1) {
+            setTimeout(initDisciplineEvents, 100);
+        }
     });
+} else {
+    if (window.location.pathname.indexOf('disciplines.html') !== -1) {
+        setTimeout(initDisciplineEvents, 100);
+    }
 }
