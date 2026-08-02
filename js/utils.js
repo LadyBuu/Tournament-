@@ -66,11 +66,11 @@ function getCharacterTeamCount(charId) {
     return count || '-';
 }
 
-// ---- Get Participant Name (FIXED) ----
+// ---- Get Participant Name (FIXED - handles both string and object) ----
 function getParticipantName(participant, tourn) {
     if (!participant) return 'Unknown';
     
-    // Handle string participant (legacy format)
+    // If it's a string, try to find by name
     if (typeof participant === 'string') {
         // Check if it's a team name
         var team = data.teams.find(function(t) { return t.name === participant; });
@@ -99,9 +99,6 @@ function getParticipantName(participant, tourn) {
         if (team) {
             return team.name;
         }
-        // If not found by ID, try by string ID (legacy)
-        var teamById = data.teams.find(function(t) { return String(t.id) === String(participant.id); });
-        if (teamById) return teamById.name;
         return 'Unknown Team';
     }
     
