@@ -2,57 +2,71 @@
 // curriculum-app.js - Curriculum Manager Main Entry Point
 // ============================================================
 
-// ---- Extend data object with curriculum data ----
-var curriculumData = {
-    disciplines: [],
-    schedules: {}, // studentId -> { week: { day: { hour: disciplineId } } }
-    restDays: {}, // week -> [day numbers]
-    examDays: {}, // week -> [day numbers]
-    grades: {}, // studentId -> { week: { disciplineId: score } }
-    rankings: {}, // week -> [{ studentId, rank, average }]
-    currentWeek: 1
-};
-
-// ---- Merge with existing data ----
-function loadCurriculumData() {
-    if (!data.curriculum) {
-        data.curriculum = {
-            disciplines: [],
-            schedules: {},
-            restDays: {},
-            examDays: {},
-            grades: {},
-            rankings: {},
-            currentWeek: 1
-        };
+// ---- Wait for data to be loaded ----
+function waitForData(callback) {
+    if (typeof data !== 'undefined' && data.characters) {
+        callback();
+        return;
     }
-    curriculumData = data.curriculum;
-    if (!curriculumData.restDays) curriculumData.restDays = {};
-    if (!curriculumData.examDays) curriculumData.examDays = {};
-    if (!curriculumData.schedules) curriculumData.schedules = {};
-    if (!curriculumData.grades) curriculumData.grades = {};
-    if (!curriculumData.rankings) curriculumData.rankings = {};
+    setTimeout(function() { waitForData(callback); }, 100);
+}
+
+// ---- Extend data object with curriculum data ----
+function loadCurriculumData() {
+    // Wait for data to be available
+    waitForData(function() {
+        if (!data.curriculum) {
+            data.curriculum = {
+                disciplines: [],
+                schedules: {},
+                restDays: {},
+                examDays: {},
+                grades: {},
+                rankings: {},
+                currentWeek: 1
+            };
+        }
+        // Copy curriculum data to global variable
+        window.curriculumData = data.curriculum;
+        
+        // Ensure all properties exist
+        if (!window.curriculumData.restDays) window.curriculumData.restDays = {};
+        if (!window.curriculumData.examDays) window.curriculumData.examDays = {};
+        if (!window.curriculumData.schedules) window.curriculumData.schedules = {};
+        if (!window.curriculumData.grades) window.curriculumData.grades = {};
+        if (!window.curriculumData.rankings) window.curriculumData.rankings = {};
+        
+        // Initialize the page based on current URL
+        initCurriculumPage();
+    });
 }
 
 // ---- Save curriculum data ----
 function saveCurriculumData() {
-    data.curriculum = curriculumData;
-    saveData();
+    if (typeof data !== 'undefined') {
+        data.curriculum = window.curriculumData;
+        if (typeof saveData === 'function') {
+            saveData();
+        }
+    }
 }
 
-// ---- Get students (characters with career status containing "student" or "trainee") ----
+// ---- Get students (trainees from character list) ----
 function getStudents() {
+    if (typeof data === 'undefined' || !data.characters) return [];
     return data.characters.filter(function(c) {
         if (c.deceased) return false;
         var status = getCurrentStatus(c).toLowerCase();
-        return status === 'student' || status === 'trainee' || status === 'rookie' || status === 'junior';
+        // Students are trainees, rookies, juniors, or anyone with "student" in their status
+        return status === 'trainee' || status === 'rookie' || status === 'junior' || status === 'student';
     }).sort(function(a, b) {
         return a.firstName.localeCompare(b.firstName);
     });
 }
 
-// ---- Get instructors (characters with "instructor" or "teacher" status) ----
+// ---- Get instructors ----
 function getInstructors() {
+    if (typeof data === 'undefined' || !data.characters) return [];
     return data.characters.filter(function(c) {
         if (c.deceased) return false;
         var status = getCurrentStatus(c).toLowerCase();
@@ -62,9 +76,16 @@ function getInstructors() {
     });
 }
 
+// ---- Get discipline by ID ----
+function getDiscipline(id) {
+    if (!window.curriculumData) return null;
+    return window.curriculumData.disciplines.find(function(d) { return String(d.id) === String(id); });
+}
+
 // ---- Get available disciplines for a week ----
 function getAvailableDisciplines(week) {
-    return curriculumData.disciplines.filter(function(d) {
+    if (!window.curriculumData) return [];
+    return window.curriculumData.disciplines.filter(function(d) {
         var start = parseInt(d.startWeek);
         var end = parseInt(d.endWeek);
         return !isNaN(start) && start <= week && (isNaN(end) || end >= week);
@@ -73,18 +94,14 @@ function getAvailableDisciplines(week) {
 
 // ---- Get student schedule for a week ----
 function getStudentSchedule(studentId, week) {
-    if (!curriculumData.schedules[studentId]) {
-        curriculumData.schedules[studentId] = {};
+    if (!window.curriculumData) return {};
+    if (!window.curriculumData.schedules[studentId]) {
+        window.curriculumData.schedules[studentId] = {};
     }
-    if (!curriculumData.schedules[studentId][week]) {
-        curriculumData.schedules[studentId][week] = {};
+    if (!window.curriculumData.schedules[studentId][week]) {
+        window.curriculumData.schedules[studentId][week] = {};
     }
-    return curriculumData.schedules[studentId][week];
-}
-
-// ---- Get discipline by ID ----
-function getDiscipline(id) {
-    return curriculumData.disciplines.find(function(d) { return String(d.id) === String(id); });
+    return window.curriculumData.schedules[studentId][week];
 }
 
 // ---- Get total hours for a student in a week ----
@@ -115,13 +132,12 @@ function getDisciplineHours(studentId, week) {
     return hours;
 }
 
-// ---- Initialize curriculum app ----
-document.addEventListener('DOMContentLoaded', function() {
-    loadCurriculumData();
-    
+// ---- Initialize curriculum page ----
+function initCurriculumPage() {
     var path = window.location.pathname;
     var page = path.split('/').pop() || 'index.html';
     
+    // Check if we're in the curriculum folder
     if (page === 'index.html') {
         updateCurriculumDashboard();
     } else if (page === 'disciplines.html') {
@@ -137,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
         renderRanking();
         initRankingEvents();
     }
-});
+}
 
 // ---- Update curriculum dashboard ----
 function updateCurriculumDashboard() {
@@ -146,13 +162,14 @@ function updateCurriculumDashboard() {
     
     document.getElementById('student-count').textContent = students.length;
     document.getElementById('instructor-count').textContent = instructors.length;
-    document.getElementById('discipline-count').textContent = curriculumData.disciplines.length;
-    document.getElementById('current-week-display').textContent = curriculumData.currentWeek || 1;
+    document.getElementById('discipline-count').textContent = window.curriculumData.disciplines.length;
+    document.getElementById('current-week-display').textContent = window.curriculumData.currentWeek || 1;
     
     // Show today's classes
     var today = new Date().getDay();
+    if (today === 0) today = 7; // Convert Sunday from 0 to 7
     var todayClasses = document.getElementById('today-classes');
-    var week = curriculumData.currentWeek || 1;
+    var week = window.curriculumData.currentWeek || 1;
     var todayClassesList = [];
     
     students.forEach(function(student) {
@@ -221,7 +238,6 @@ function updateCurriculumDashboard() {
     } else {
         var dayNames = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         var html = '';
-        // Limit to 10
         upcomingList.slice(0, 10).forEach(function(cls) {
             html += '<div class="activity-item">' + 
                 dayNames[cls.day] + ' - ' + cls.student + ' - ' + cls.discipline + ' (' + cls.hour + ':00)' +
@@ -241,7 +257,26 @@ function setCurriculumWeek(week) {
         alert('Please enter a valid week number (1-52).');
         return false;
     }
-    curriculumData.currentWeek = weekNum;
+    window.curriculumData.currentWeek = weekNum;
     saveCurriculumData();
     return true;
 }
+
+// ---- Initialize on DOM ready ----
+document.addEventListener('DOMContentLoaded', function() {
+    loadCurriculumData();
+});
+
+// ---- Override renderAll for curriculum pages ----
+var originalRenderAll = window.renderAll;
+window.renderAll = function() {
+    var path = window.location.pathname;
+    var page = path.split('/').pop() || 'index.html';
+    var isCurriculum = path.indexOf('/curriculum/') !== -1;
+    
+    if (isCurriculum) {
+        loadCurriculumData();
+    } else if (typeof originalRenderAll === 'function') {
+        originalRenderAll();
+    }
+};
