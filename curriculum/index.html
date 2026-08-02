@@ -34,18 +34,19 @@
     <main class="curriculum-dashboard">
         <div class="page-header">
             <h2>School Calendar Dashboard</h2>
+            <p style="color:var(--text-dim);font-size:0.9rem;">Trainees are automatically recognized as students</p>
         </div>
 
         <section class="stats-grid">
             <div class="stat-card">
-                <h3>Students</h3>
+                <h3>Trainees / Students</h3>
                 <p class="stat-number" id="student-count">0</p>
-                <span style="font-size:0.8rem;color:var(--text-dim);">Characters with "Student" status</span>
+                <span style="font-size:0.8rem;color:var(--text-dim);">Characters with Trainee, Rookie, or Junior status</span>
             </div>
             <div class="stat-card">
                 <h3>Instructors</h3>
                 <p class="stat-number" id="instructor-count">0</p>
-                <span style="font-size:0.8rem;color:var(--text-dim);">Characters with "Instructor" status</span>
+                <span style="font-size:0.8rem;color:var(--text-dim);">Characters with Instructor status</span>
             </div>
             <div class="stat-card">
                 <h3>Disciplines</h3>
@@ -77,6 +78,7 @@
 
     <script src="../js/database.js"></script>
     <script src="../js/utils.js"></script>
+    <script src="../js/characters.js"></script>
     <script src="js/curriculum-app.js"></script>
     <script src="js/disciplines.js"></script>
     <script src="js/calendar.js"></script>
