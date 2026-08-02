@@ -6,13 +6,13 @@ function renderDisciplines() {
     var container = document.getElementById('disciplines-container');
     if (!container) return;
     
-    if (curriculumData.disciplines.length === 0) {
+    if (!window.curriculumData || window.curriculumData.disciplines.length === 0) {
         container.innerHTML = '<p class="empty-state">No disciplines created yet. Add your first discipline!</p>';
         return;
     }
     
     var html = '';
-    curriculumData.disciplines.forEach(function(d) {
+    window.curriculumData.disciplines.forEach(function(d) {
         var instructor = data.characters.find(function(c) { return String(c.id) === String(d.instructorId); });
         var instructorName = instructor ? [instructor.firstName, instructor.lastName].filter(function(n) { return n; }).join(' ') : 'Not assigned';
         var weekDisplay = d.startWeek ? 'Wk ' + d.startWeek : '?';
@@ -61,7 +61,7 @@ function showDisciplineForm(editId) {
     
     if (editId) {
         title.textContent = 'Edit Discipline';
-        var discipline = curriculumData.disciplines.find(function(d) { return String(d.id) === String(editId); });
+        var discipline = window.curriculumData.disciplines.find(function(d) { return String(d.id) === String(editId); });
         if (discipline) {
             document.getElementById('discipline-name').value = discipline.name || '';
             document.getElementById('discipline-curriculum').value = discipline.curriculum || '';
@@ -150,10 +150,10 @@ function saveDiscipline(e) {
     if (!disciplineData.name) { alert('Discipline name is required.'); return; }
     
     if (editId) {
-        var index = curriculumData.disciplines.findIndex(function(d) { return String(d.id) === String(editId); });
+        var index = window.curriculumData.disciplines.findIndex(function(d) { return String(d.id) === String(editId); });
         if (index !== -1) {
-            curriculumData.disciplines[index] = Object.assign({}, curriculumData.disciplines[index], disciplineData);
-            logActivity('Updated discipline: ' + disciplineData.name);
+            window.curriculumData.disciplines[index] = Object.assign({}, window.curriculumData.disciplines[index], disciplineData);
+            if (typeof logActivity === 'function') logActivity('Updated discipline: ' + disciplineData.name);
         }
     } else {
         var newDiscipline = {
@@ -169,8 +169,8 @@ function saveDiscipline(e) {
             gradingSystem: disciplineData.gradingSystem,
             createdAt: new Date().toISOString()
         };
-        curriculumData.disciplines.push(newDiscipline);
-        logActivity('Added discipline: ' + disciplineData.name);
+        window.curriculumData.disciplines.push(newDiscipline);
+        if (typeof logActivity === 'function') logActivity('Added discipline: ' + disciplineData.name);
     }
     
     saveCurriculumData();
@@ -185,13 +185,13 @@ function editDiscipline(id) {
 function deleteDiscipline(id) {
     if (!confirm('Delete this discipline permanently? This will remove it from all schedules.')) return;
     
-    var discipline = curriculumData.disciplines.find(function(d) { return String(d.id) === String(id); });
+    var discipline = window.curriculumData.disciplines.find(function(d) { return String(d.id) === String(id); });
     if (!discipline) return;
     
     // Remove from all schedules
-    for (var studentId in curriculumData.schedules) {
-        for (var week in curriculumData.schedules[studentId]) {
-            var schedule = curriculumData.schedules[studentId][week];
+    for (var studentId in window.curriculumData.schedules) {
+        for (var week in window.curriculumData.schedules[studentId]) {
+            var schedule = window.curriculumData.schedules[studentId][week];
             for (var day in schedule) {
                 for (var hour in schedule[day]) {
                     if (String(schedule[day][hour]) === String(id)) {
@@ -202,8 +202,8 @@ function deleteDiscipline(id) {
         }
     }
     
-    curriculumData.disciplines = curriculumData.disciplines.filter(function(d) { return String(d.id) !== String(id); });
-    logActivity('Deleted discipline: ' + discipline.name);
+    window.curriculumData.disciplines = window.curriculumData.disciplines.filter(function(d) { return String(d.id) !== String(id); });
+    if (typeof logActivity === 'function') logActivity('Deleted discipline: ' + discipline.name);
     saveCurriculumData();
     renderDisciplines();
 }
