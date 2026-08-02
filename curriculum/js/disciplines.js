@@ -47,6 +47,12 @@ function renderDisciplines() {
 
 function showDisciplineForm(editId) {
     console.log('showDisciplineForm called', editId);
+    
+    // Ensure curriculumData exists
+    if (!window.curriculumData) {
+        window.curriculumData = { disciplines: [], schedules: {}, restDays: {}, examDays: {}, grades: {}, rankings: {}, currentWeek: 1 };
+    }
+    
     var form = document.getElementById('discipline-form');
     if (!form) {
         console.error('Discipline form not found');
@@ -111,7 +117,8 @@ function showDisciplineForm(editId) {
         delete formElement.dataset.editId;
     }
     
-    document.getElementById('discipline-form').scrollIntoView({ behavior: 'smooth' });
+    // Scroll to form
+    form.scrollIntoView({ behavior: 'smooth' });
 }
 
 function addGradingEntry(container, letter, min, max) {
@@ -177,7 +184,8 @@ function saveDiscipline(e) {
         var index = window.curriculumData.disciplines.findIndex(function(d) { return String(d.id) === String(editId); });
         if (index !== -1) {
             window.curriculumData.disciplines[index] = Object.assign({}, window.curriculumData.disciplines[index], disciplineData);
-            if (typeof logActivity === 'function') logActivity('Updated discipline: ' + disciplineData.name);
+            // Use curriculum log instead of global logActivity
+            curriculumLog('Updated discipline: ' + disciplineData.name);
         }
     } else {
         var newDiscipline = {
@@ -194,12 +202,25 @@ function saveDiscipline(e) {
             createdAt: new Date().toISOString()
         };
         window.curriculumData.disciplines.push(newDiscipline);
-        if (typeof logActivity === 'function') logActivity('Added discipline: ' + disciplineData.name);
+        curriculumLog('Added discipline: ' + disciplineData.name);
     }
     
     saveCurriculumData();
     renderDisciplines();
     hideDisciplineForm();
+}
+
+// ---- Curriculum log function (doesn't rely on global data) ----
+function curriculumLog(message) {
+    console.log('[Curriculum] ' + message);
+    // Also try to use the global log if available
+    if (typeof logActivity === 'function') {
+        try {
+            logActivity(message);
+        } catch (e) {
+            console.log('Could not log to activity:', message);
+        }
+    }
 }
 
 function editDiscipline(id) {
@@ -227,16 +248,20 @@ function deleteDiscipline(id) {
     }
     
     window.curriculumData.disciplines = window.curriculumData.disciplines.filter(function(d) { return String(d.id) !== String(id); });
-    if (typeof logActivity === 'function') logActivity('Deleted discipline: ' + discipline.name);
+    curriculumLog('Deleted discipline: ' + discipline.name);
     saveCurriculumData();
     renderDisciplines();
 }
 
 function initDisciplineEvents() {
     console.log('initDisciplineEvents called');
+    
     var addBtn = document.getElementById('add-discipline-btn');
     if (addBtn) {
-        addBtn.addEventListener('click', function(e) {
+        // Remove any existing listeners to prevent duplicates
+        var newAddBtn = addBtn.cloneNode(true);
+        addBtn.parentNode.replaceChild(newAddBtn, addBtn);
+        newAddBtn.addEventListener('click', function(e) {
             console.log('Add discipline button clicked');
             showDisciplineForm();
         });
@@ -246,32 +271,44 @@ function initDisciplineEvents() {
     
     var cancelBtn = document.getElementById('cancel-discipline-btn');
     if (cancelBtn) {
-        cancelBtn.addEventListener('click', hideDisciplineForm);
+        var newCancelBtn = cancelBtn.cloneNode(true);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+        newCancelBtn.addEventListener('click', hideDisciplineForm);
     }
     
     var form = document.getElementById('discipline-form-inner');
     if (form) {
-        form.addEventListener('submit', saveDiscipline);
+        var newForm = form.cloneNode(true);
+        form.parentNode.replaceChild(newForm, form);
+        newForm.addEventListener('submit', saveDiscipline);
     }
     
     var addGradingBtn = document.getElementById('add-grading-btn');
     if (addGradingBtn) {
-        addGradingBtn.addEventListener('click', function() {
+        var newGradingBtn = addGradingBtn.cloneNode(true);
+        addGradingBtn.parentNode.replaceChild(newGradingBtn, addGradingBtn);
+        newGradingBtn.addEventListener('click', function() {
             var container = document.getElementById('grading-system-container');
             if (container) addGradingEntry(container);
         });
     }
 }
 
-// Make sure events are initialized when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-        if (window.location.pathname.indexOf('disciplines.html') !== -1) {
-            setTimeout(initDisciplineEvents, 100);
-        }
-    });
-} else {
+// ---- Auto-initialize if on disciplines page ----
+(function() {
     if (window.location.pathname.indexOf('disciplines.html') !== -1) {
-        setTimeout(initDisciplineEvents, 100);
+        // Wait for DOM and data to be ready
+        var checkReady = setInterval(function() {
+            if (document.getElementById('disciplines-container') && typeof data !== 'undefined' && data.characters) {
+                clearInterval(checkReady);
+                // Make sure curriculumData is loaded
+                if (!window.curriculumData) {
+                    window.curriculumData = { disciplines: [], schedules: {}, restDays: {}, examDays: {}, grades: {}, rankings: {}, currentWeek: 1 };
+                }
+                renderDisciplines();
+                initDisciplineEvents();
+                console.log('Disciplines page initialized');
+            }
+        }, 100);
     }
-}
+})();
